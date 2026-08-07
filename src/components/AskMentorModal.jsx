@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { postMentorAsk } from '../api'
@@ -18,6 +19,13 @@ const CATEGORIES = [
 // A student sends a question; the mentor replies later from their dashboard.
 export default function AskMentorModal({ mentor, onClose }) {
   const { session } = useAuth()
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [])
 
   const [form, setForm] = useState({
     name: '',
@@ -80,116 +88,39 @@ export default function AskMentorModal({ mentor, onClose }) {
     }
   }
 
-  const inputClass = (field) =>
-    `w-full bg-navy-800 border rounded-xl px-4 py-2.5 text-white placeholder-gray-500 text-sm transition-all duration-200 outline-none focus:ring-2 focus:ring-saffron/40 ${
-      errors[field] ? 'border-rose-500/50 focus:border-rose-500' : 'border-white/10 hover:border-white/20 focus:border-saffron/60'
-    }`
-
-  return (
-    <div className="fixed inset-0 z-[95] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="glass-card w-full max-w-lg p-6 sm:p-8 border-saffron/30 relative animate-slide-up shadow-2xl overflow-y-auto max-h-[90vh]">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors text-2xl"
-          aria-label="Close"
-        >
-          &times;
-        </button>
-
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
+      <div className="relative w-full max-w-lg glass-card border border-white/15 p-6 md:p-8 rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] my-8">
+        <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-all">✕</button>
+        <div className="mb-6">
+          <h3 className="font-display text-2xl font-bold text-white">Ask {mentor?.name || 'Mentor'}</h3>
+          <p className="text-gray-400 text-xs mt-1">Get authentic, personalized advice directly from someone who walked this path.</p>
+        </div>
         {!isSubmitted ? (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="text-center mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-saffron/10 border border-saffron/30 flex items-center justify-center text-2xl mx-auto mb-3">
-                💬
-              </div>
-              <h2 className="font-display text-2xl font-bold text-white">Ask Mentor</h2>
-              <p className="text-gray-400 text-sm mt-1">
-                Send your question to {mentor?.name || 'this mentor'}. They'll reply and you'll be notified by email.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">Full Name *</label>
-                <input type="text" value={form.name} onChange={set('name')} placeholder="e.g. Rahul Sharma" className={inputClass('name')} />
-                {errors.name && <p className="text-[10px] text-rose-400 mt-1">{errors.name}</p>}
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">Email Address *</label>
-                <input type="email" value={form.email} onChange={set('email')} placeholder="you@example.com" className={inputClass('email')} />
-                {errors.email && <p className="text-[10px] text-rose-400 mt-1">{errors.email}</p>}
-              </div>
-            </div>
-
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Your Class *</label>
-              <select value={form.classLevel} onChange={set('classLevel')} className={inputClass('classLevel')}>
-                <option value="">Select your class</option>
-                <option value="10th">Class 10th</option>
-                <option value="12th">Class 12th</option>
-                <option value="Other">Other / Undergraduate</option>
-              </select>
-              {errors.classLevel && <p className="text-[10px] text-rose-400 mt-1">{errors.classLevel}</p>}
+              <label className="block text-xs font-medium text-gray-300 mb-1">Your Name</label>
+              <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full bg-[#111827] border border-white/10 rounded-xl px-4 py-2 text-white text-xs" required />
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">Subject *</label>
-                <input type="text" value={form.subject} onChange={set('subject')} placeholder="e.g. Confused about PCM vs PCB" className={inputClass('subject')} />
-                {errors.subject && <p className="text-[10px] text-rose-400 mt-1">{errors.subject}</p>}
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">Category *</label>
-                <select value={form.category} onChange={set('category')} className={inputClass('category')}>
-                  <option value="">Select category</option>
-                  {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-                {errors.category && <p className="text-[10px] text-rose-400 mt-1">{errors.category}</p>}
-              </div>
-            </div>
-
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Your Question *</label>
-              <textarea
-                rows="4"
-                value={form.question}
-                onChange={set('question')}
-                placeholder="Ask anything about their journey, career path, or how they got where they are."
-                className={`${inputClass('question')} resize-none`}
-              />
-              {errors.question && <p className="text-[10px] text-rose-400 mt-1">{errors.question}</p>}
+              <label className="block text-xs font-medium text-gray-300 mb-1">Your Question</label>
+              <textarea rows={4} value={form.question} onChange={e => setForm({ ...form, question: e.target.value })} placeholder="What would you like to know?" className="w-full bg-[#111827] border border-white/10 rounded-xl px-4 py-2 text-white text-xs" required />
             </div>
-
-            {submitError && (
-              <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded-xl p-4">⚠️ {submitError}</div>
-            )}
-
-            <div className="pt-2">
-              <button type="submit" disabled={submitting} className="w-full btn-primary py-3 text-sm disabled:opacity-50 flex items-center justify-center gap-2">
-                {submitting && (
-                  <svg className="animate-spin h-4 w-4 text-current" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                )}
-                {submitting ? 'Sending...' : 'Send Question →'}
-              </button>
-            </div>
+            {submitError && <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded-xl p-3">⚠️ {submitError}</div>}
+            <button type="submit" disabled={submitting} className="w-full btn-primary py-2.5 text-xs">
+              {submitting ? 'Sending...' : 'Send Question →'}
+            </button>
           </form>
         ) : (
           <div className="text-center py-6">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-4xl mx-auto mb-4">✅</div>
-            <h2 className="font-display text-2xl font-bold text-white mb-2">Question Sent!</h2>
-            <p className="text-gray-300 text-sm leading-relaxed max-w-sm mx-auto mb-6">
-              Your question has been sent to {mentor?.name || 'the mentor'}. They'll reply soon and you'll be notified at your registered email. You can track it under "My Mentor Requests".
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link to="/my-mentor-requests" onClick={onClose} className="btn-primary px-6 py-3 text-sm">View My Requests</Link>
-              <button onClick={onClose} className="px-6 py-3 text-sm rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 transition-all">Close</button>
-            </div>
+            <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-2xl mx-auto mb-3">✅</div>
+            <h4 className="font-display text-xl font-bold text-white mb-2">Question Sent!</h4>
+            <p className="text-gray-300 text-xs mb-4">Your question has been sent to {mentor?.name}. You can track it under "My Mentor Requests".</p>
+            <button onClick={onClose} className="btn-primary px-6 py-2 text-xs">Done</button>
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
@@ -10,7 +10,7 @@ const TABS = [
 
 export default function AuthModal({ isOpen, onClose }) {
   const navigate = useNavigate()
-  const { loginAsDemo } = useAuth()
+  const { loginAsDemo, continueAsGuest } = useAuth()
   const [tab, setTab]           = useState('password')   // 'password' | 'magic'
   const [mode, setMode]         = useState('signin')     // 'signin' | 'signup'
   const [email, setEmail]       = useState('')
@@ -21,6 +21,17 @@ export default function AuthModal({ isOpen, onClose }) {
   const [errorMsg, setErrorMsg] = useState('')
   const [success, setSuccess]   = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isOpen])
 
   if (!isOpen) return null
 
@@ -45,17 +56,22 @@ export default function AuthModal({ isOpen, onClose }) {
   const switchTab = (t) => { reset(); setTab(t) }
   const switchMode = (m) => { reset(); setMode(m) }
 
+  const ADMIN_EMAILS = ['admin@aagekya.com', 'admin@gmail.com', 'demo-admin@aagekya.com']
+
   // ── Handlers ──────────────────────────────────────────────
   const handleMagicLink = async (e) => {
     e.preventDefault()
     if (!email.trim()) return setErrorMsg('Please enter your email.')
-    // Clear any leftover demo session — otherwise AuthContext's auth-state
-    // listener ignores real sign-ins while this flag is present, and the
-    // user keeps seeing demo/sandbox data instead of their real account.
+    const normEmail = email.trim().toLowerCase()
+
+    if (userType === 'admin' && !ADMIN_EMAILS.includes(normEmail) && !normEmail.endsWith('@admin.aagekya.com')) {
+      return setErrorMsg(`Unauthorized: "${email}" is not on the authorized Admin whitelist.`)
+    }
+
     localStorage.removeItem('aageKyaDemoSession')
     setLoading(true); setErrorMsg('')
     const { error } = await supabase.auth.signInWithOtp({
-      email,
+      email: normEmail,
       options: {
         emailRedirectTo: window.location.origin,
         data: { user_type: userType }
@@ -64,18 +80,20 @@ export default function AuthModal({ isOpen, onClose }) {
     setLoading(false)
     if (error) return setErrorMsg(error.message)
     setSuccess(true)
-    setSuccessMsg(`Magic link sent to ${email}. Click it to log in!`)
+    setSuccessMsg(`Magic link sent to ${email}. Click it to log in directly!`)
   }
 
   const handleEmailPassword = async (e) => {
     e.preventDefault()
     setErrorMsg('')
-    // Clear any leftover demo session — otherwise AuthContext's auth-state
-    // listener ignores real sign-ins while this flag is present, and the
-    // user keeps seeing demo/sandbox data instead of their real account.
     localStorage.removeItem('aageKyaDemoSession')
     if (!email.trim() || !password)
       return setErrorMsg('Please fill in all fields.')
+
+    const normEmail = email.trim().toLowerCase()
+    if (userType === 'admin' && !ADMIN_EMAILS.includes(normEmail) && !normEmail.endsWith('@admin.aagekya.com')) {
+      return setErrorMsg(`Unauthorized: "${email}" is not on the authorized Admin whitelist.`)
+    }
 
     if (mode === 'signup') {
       if (password.length < 6)
@@ -88,7 +106,7 @@ export default function AuthModal({ isOpen, onClose }) {
     let error
     if (mode === 'signup') {
       const { error: e } = await supabase.auth.signUp({
-        email,
+        email: normEmail,
         password,
         options: {
           emailRedirectTo: window.location.origin,
@@ -101,18 +119,24 @@ export default function AuthModal({ isOpen, onClose }) {
         setSuccessMsg(`Account created! Check ${email} for a confirmation link.`)
       }
     } else {
-      const { error: e } = await supabase.auth.signInWithPassword({ email, password })
+      const { error: e } = await supabase.auth.signInWithPassword({ email: normEmail, password })
       error = e
       if (!error) {
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
-          const { data: dbProfile } = await supabase
-            .from('students')
-            .select('role')
-            .eq('id', user.id)
-            .maybeSingle()
+          // Check role from DB
+          let userRole = 'student'
+          if (ADMIN_EMAILS.includes(normEmail) || normEmail.endsWith('@admin.aagekya.com')) {
+            userRole = 'admin'
+          } else {
+            const { data: dbProfile } = await supabase
+              .from('students')
+              .select('role')
+              .eq('id', user.id)
+              .maybeSingle()
+            userRole = dbProfile?.role || (userType === 'mentor' ? 'mentor' : 'student')
+          }
 
-          const userRole = dbProfile?.role || 'student'
           onClose()
           if (userRole === 'admin') {
             navigate('/admin-dashboard')
@@ -142,12 +166,20 @@ export default function AuthModal({ isOpen, onClose }) {
   const inputClass = "w-full bg-[#111827] border border-white/10 hover:border-white/20 focus:border-saffron/60 rounded-xl px-4 py-3 text-white placeholder-gray-500 text-sm transition-all outline-none focus:ring-2 focus:ring-saffron/30"
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
-      <div className="relative w-full max-w-md animate-scale-in">
+    <div
+      className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 font-sans overflow-hidden animate-fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          reset()
+          onClose()
+        }
+      }}
+    >
+      <div className="relative w-full max-w-md my-auto max-h-[90vh] flex flex-col animate-scale-in">
 
         {/* Card */}
-        <div className="glass-card border-white/10 p-7 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-saffron/50 to-transparent" />
+        <div className="glass-card border border-white/15 p-6 sm:p-7 relative overflow-y-auto custom-scrollbar rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)]">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-saffron/20 via-saffron to-saffron/20" />
 
           {/* Close */}
           <button
@@ -272,6 +304,42 @@ export default function AuthModal({ isOpen, onClose }) {
               {/* ── Email + Password Form ── */}
               {tab === 'password' && (
                 <form onSubmit={handleEmailPassword} className="space-y-4">
+                  {/* Role Selector — Always visible for precision role switching */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-300 mb-1.5">Select Your Account Type</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'student', label: 'Student', icon: '🎓' },
+                        { id: 'mentor', label: 'Mentor', icon: '🧭' },
+                        { id: 'admin', label: 'Admin', icon: '🔑' },
+                      ].map(t => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setUserType(t.id)}
+                          className={`p-3 rounded-xl border text-center transition-all duration-200 flex flex-col items-center justify-center gap-1 ${
+                            userType === t.id
+                              ? 'bg-saffron/15 border-saffron text-white ring-2 ring-saffron/20'
+                              : 'bg-[#111827]/60 border-white/10 text-gray-400 hover:border-white/20 hover:text-gray-200'
+                          }`}
+                        >
+                          <span className="text-xl">{t.icon}</span>
+                          <span className="text-[11px] font-bold tracking-tight">{t.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                    {userType === 'mentor' && (
+                      <p className="text-gray-400 text-[10px] mt-1.5 leading-relaxed">
+                        Log in to answer student queries, manage session requests, and view application status.
+                      </p>
+                    )}
+                    {userType === 'admin' && (
+                      <p className="text-gray-400 text-[10px] mt-1.5 leading-relaxed">
+                        Admin Portal: Review &amp; verify mentor applications with automated LinkedIn checks.
+                      </p>
+                    )}
+                  </div>
+
                   <div>
                     <label className="block text-xs font-semibold text-gray-300 mb-1.5">Email Address</label>
                     <input
@@ -299,38 +367,6 @@ export default function AuthModal({ isOpen, onClose }) {
                         placeholder="Repeat your password"
                         className={inputClass}
                       />
-                    </div>
-                  )}
-                  {mode === 'signup' && (
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-300 mb-1.5">User Type</label>
-                      <div className="grid grid-cols-3 gap-2 mt-1">
-                        {[
-                          { id: 'student', label: 'Student', icon: '🎓' },
-                          { id: 'mentor', label: 'Mentor', icon: '🧭' },
-                          { id: 'admin', label: 'Admin', icon: '🔑' },
-                        ].map(t => (
-                          <button
-                            key={t.id}
-                            type="button"
-                            onClick={() => setUserType(t.id)}
-                            className={`p-3 rounded-xl border text-center transition-all duration-200 flex flex-col items-center justify-center gap-1 ${
-                              userType === t.id
-                                ? 'bg-saffron/15 border-saffron text-white ring-2 ring-saffron/20'
-                                : 'bg-[#111827]/60 border-white/10 text-gray-400 hover:border-white/20 hover:text-gray-200'
-                            }`}
-                          >
-                            <span className="text-xl">{t.icon}</span>
-                            <span className="text-[11px] font-bold tracking-tight">{t.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                      {userType === 'mentor' && (
-                        <p className="text-gray-500 text-[10px] mt-1.5 leading-relaxed">
-                          Mentors answer student questions and get application updates in their dashboard.
-                          Want to become one? <Link to="/mentor-apply" onClick={onClose} className="text-saffron hover:underline">Apply here</Link>.
-                        </p>
-                      )}
                     </div>
                   )}
 
@@ -367,6 +403,17 @@ export default function AuthModal({ isOpen, onClose }) {
                 <span className="relative z-10 px-3 bg-[#111827] text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Demo Sandbox Bypass</span>
               </div>
               <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await continueAsGuest()
+                    onClose()
+                    navigate('/explore')
+                  }}
+                  className="w-full py-2.5 rounded-xl border border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5"
+                >
+                  🚀 Continue as Guest (No-Login Demo Mode)
+                </button>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"

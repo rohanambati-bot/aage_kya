@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
+import { postAnalyticsEvent } from '../api'
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 
@@ -278,13 +279,12 @@ export default function Landing() {
 
           {/* Subheadline */}
           <p
-            className="text-gray-300 max-w-2xl mx-auto mb-10 leading-relaxed animate-slide-up"
-            style={{ fontSize: 'clamp(1rem, 2.5vw, 1.2rem)', animationDelay: '120ms' }}
+            className="text-gray-300 max-w-xl mx-auto mb-10 leading-relaxed font-sans animate-slide-up"
+            style={{ fontSize: 'clamp(1rem, 2vw, 1.25rem)', animationDelay: '120ms' }}
           >
-            Honest, personalized guidance for students who have{' '}
-            <span className="text-white font-semibold">no one to ask</span>.
+            Clear, unvarnished guidance tailored for Indian students.
             <br className="hidden sm:block" />
-            No coaching class pitch. No sponsored rankings. Just the truth.
+            Zero coaching pitches. Zero sponsored rankings. Pure clarity.
           </p>
 
           {/* CTA group */}
@@ -295,21 +295,25 @@ export default function Landing() {
             <Link
               to="/class10/onboarding"
               id="hero-cta-10"
-              className="btn-primary text-base px-8 py-4 animate-pulse-glow font-semibold tracking-wide flex items-center gap-2"
+              onClick={() => postAnalyticsEvent('hero_cta_10th_clicked', { source: 'landing_hero' })}
+              className="btn-primary text-sm sm:text-base px-8 py-3.5 font-semibold tracking-wide flex items-center gap-2 hover:scale-[1.02] transition-transform"
             >
-              <span>10th Passer</span>
-              <span className="text-xs bg-black/20 px-2 py-0.5 rounded">Stream selection</span>
+              <span>10th Grade Stream Finder</span>
             </Link>
             <Link
               to="/class12/onboarding"
               id="hero-cta-12"
-              className="btn-primary text-base px-8 py-4 animate-pulse-glow font-semibold tracking-wide flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 border-purple-500/30 hover:from-purple-500 hover:to-indigo-500 shadow-purple-500/20"
+              onClick={() => postAnalyticsEvent('hero_cta_12th_clicked', { source: 'landing_hero' })}
+              className="btn-primary text-sm sm:text-base px-8 py-3.5 font-semibold tracking-wide flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 border-purple-500/30 hover:from-purple-500 hover:to-indigo-500 shadow-purple-500/20 hover:scale-[1.02] transition-transform"
             >
-              <span>12th Passer</span>
-              <span className="text-xs bg-black/20 px-2 py-0.5 rounded">College & Career</span>
+              <span>12th Grade Career Planner</span>
             </Link>
-            <Link to="/mentors" className="btn-outline text-base px-8 py-4 font-semibold">
-              Talk to a Mentor Free
+            <Link
+              to="/mentors"
+              onClick={() => postAnalyticsEvent('hero_cta_mentor_clicked', { source: 'landing_hero' })}
+              className="btn-outline text-sm sm:text-base px-8 py-3.5 font-semibold hover:scale-[1.02] transition-transform"
+            >
+              Find a Mentor
             </Link>
           </div>
 

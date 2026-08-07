@@ -1,0 +1,46 @@
+import {
+  computeMatch,
+  computeAcademicFit,
+  computeStreamFit,
+  computeLocationFit,
+  computeBudgetFit,
+  computeOutcomeSignal,
+  computeSizeCategory,
+  computeInterestVector,
+  haversineKm,
+} from '../../server/engine/localMatchEngine.js'
+
+import {
+  MATCH_WEIGHTS,
+  MATCH_TIER_HIGH,
+  MATCH_TIER_MODERATE,
+  SIZE_SMALL_MAX,
+  SIZE_MID_MAX,
+  LOCATION_FULL_SCORE_KM,
+  LOCATION_FLOOR_KM,
+  LOCATION_FLOOR_SCORE,
+  BUDGET_BANDS,
+  NEIGHBOURING_STATES,
+} from '../../server/config/matchConfig.js'
+
+export {
+  computeMatch,
+  computeAcademicFit,
+  computeStreamFit,
+  computeLocationFit,
+  computeBudgetFit,
+  computeOutcomeSignal,
+  computeSizeCategory,
+  computeInterestVector,
+  haversineKm,
+  MATCH_WEIGHTS,
+  MATCH_TIER_HIGH,
+  MATCH_TIER_MODERATE,
+  SIZE_SMALL_MAX,
+  SIZE_MID_MAX,
+  LOCATION_FULL_SCORE_KM,
+  LOCATION_FLOOR_KM,
+  LOCATION_FLOOR_SCORE,
+  BUDGET_BANDS,
+  NEIGHBOURING_STATES,
+}

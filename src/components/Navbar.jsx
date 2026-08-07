@@ -221,12 +221,12 @@ export default function Navbar() {
                   )}
                 </div>
               ) : (
-                <button
-                  onClick={() => setIsAuthOpen(true)}
+                <Link
+                  to="/auth"
                   className="btn-primary text-xs py-2 px-5"
                 >
                   Sign In
-                </button>
+                </Link>
               )}
             </div>
 
@@ -297,20 +297,19 @@ export default function Navbar() {
                     </button>
                   </>
                 ) : (
-                  <button
-                    onClick={() => { setIsOpen(false); setIsAuthOpen(true) }}
-                    className="w-full btn-primary text-sm py-2.5"
+                  <Link
+                    to="/auth"
+                    onClick={() => setIsOpen(false)}
+                    className="block text-center w-full btn-primary text-sm py-2.5"
                   >
                     Sign In
-                  </button>
+                  </Link>
                 )}
               </div>
             </div>
           )}
         </div>
       </nav>
-
-      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </>
   )
 }

@@ -469,14 +469,78 @@ const MENTORS = [
 
 // ─── Seed Functions ───────────────────────────────────────────────────────────
 
+const CITY_COORDINATES = {
+  mumbai: { latitude: 19.0760, longitude: 72.8777 },
+  delhi: { latitude: 28.6139, longitude: 77.2090 },
+  chennai: { latitude: 13.0827, longitude: 80.2707 },
+  kanpur: { latitude: 26.4499, longitude: 80.3319 },
+  kharagpur: { latitude: 22.3460, longitude: 87.2320 },
+  roorkee: { latitude: 29.8543, longitude: 77.8880 },
+  hyderabad: { latitude: 17.3850, longitude: 78.4867 },
+  guwahati: { latitude: 26.1445, longitude: 91.7362 },
+  varanasi: { latitude: 25.3176, longitude: 82.9739 },
+  indore: { latitude: 22.7196, longitude: 75.8577 },
+  tiruchirappalli: { latitude: 10.7905, longitude: 78.7047 },
+  warangal: { latitude: 17.9689, longitude: 79.5941 },
+  mangalore: { latitude: 12.9141, longitude: 74.8560 },
+  kozhikode: { latitude: 11.2588, longitude: 75.7804 },
+  rourkela: { latitude: 22.2604, longitude: 84.8536 },
+  jaipur: { latitude: 26.9124, longitude: 75.7873 },
+  bhopal: { latitude: 23.2599, longitude: 77.4126 },
+  patna: { latitude: 25.5941, longitude: 85.1376 },
+  pilani: { latitude: 28.3636, longitude: 75.6025 },
+  goa: { latitude: 15.2993, longitude: 74.1240 },
+  kolkata: { latitude: 22.5726, longitude: 88.3639 },
+  pune: { latitude: 18.5204, longitude: 73.8567 },
+  vellore: { latitude: 12.9165, longitude: 79.1325 },
+  manipal: { latitude: 13.3409, longitude: 74.7943 },
+  patiala: { latitude: 30.3398, longitude: 76.3869 },
+  coimbatore: { latitude: 11.0168, longitude: 76.9558 },
+  mohali: { latitude: 30.7046, longitude: 76.7179 },
+  phagwara: { latitude: 31.2240, longitude: 75.7708 },
+  noida: { latitude: 28.5355, longitude: 77.3910 },
+  bhubaneswar: { latitude: 20.2961, longitude: 85.8245 },
+  bangalore: { latitude: 12.9716, longitude: 77.5946 },
+  bengaluru: { latitude: 12.9716, longitude: 77.5946 },
+  ahmedabad: { latitude: 23.0225, longitude: 72.5714 },
+  gandhinagar: { latitude: 23.2156, longitude: 72.6369 },
+}
+
 async function seedColleges() {
   console.log(`\n📚 Seeding ${COLLEGES.length} colleges...`)
   let upserted = 0, errors = 0
 
   for (const college of COLLEGES) {
-    const { error } = await supabase
+    const normCity = (college.city || '').toLowerCase()
+    const coords = CITY_COORDINATES[normCity] || { latitude: 12.9716, longitude: 77.5946 }
+
+    const tags = college.interest_tags || (college.streams || []).flatMap(s => {
+      if (s.includes('PCM')) return ['engineering', 'computing', 'pure_science', 'architecture']
+      if (s.includes('PCB')) return ['medical', 'pure_science', 'agriculture']
+      if (s.includes('Commerce')) return ['commerce', 'management', 'law']
+      if (s.includes('Arts')) return ['arts', 'law', 'media', 'design']
+      return []
+    })
+
+    const payload = {
+      ...college,
+      latitude: college.latitude ?? coords.latitude,
+      longitude: college.longitude ?? coords.longitude,
+      placement_rate: college.placement_rate ?? (college.min_marks >= 90 ? 92 : college.min_marks >= 80 ? 82 : 72),
+      interest_tags: Array.from(new Set(tags)),
+    }
+
+    let { error } = await supabase
       .from('colleges')
-      .upsert(college, { onConflict: 'name' })
+      .upsert(payload, { onConflict: 'name' })
+
+    if (error && (error.message?.includes('schema cache') || error.message?.includes('column'))) {
+      // Extended columns migration has not been executed on remote DB yet — retry with basic college fields
+      const retryRes = await supabase
+        .from('colleges')
+        .upsert(college, { onConflict: 'name' })
+      error = retryRes.error
+    }
 
     if (error) {
       console.error(`  ❌ ${college.name}: ${error.message}`)

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { Navigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
-import { getAdminMentorMessages } from '../api'
+import { getAdminMentorMessages, reverifyMentorApplication } from '../api'
 
 export default function AdminDashboard() {
   const { session, profile } = useAuth()
@@ -81,6 +81,19 @@ export default function AdminDashboard() {
       })
       if (!res.ok) throw new Error('Failed to approve')
       // Refresh
+      await fetchAllData()
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleReverifyMentor = async (id) => {
+    setActionLoading(id)
+    try {
+      const res = await reverifyMentorApplication(id, session?.access_token)
+      if (!res.ok) throw new Error('Failed to reverify')
       await fetchAllData()
     } catch (err) {
       alert(err.message)
@@ -415,21 +428,58 @@ export default function AdminDashboard() {
                             </div>
                           </div>
 
-                          {/* Verification Links */}
-                          <div className="flex flex-wrap gap-3 mb-4 text-xs">
-                            {app.linkedin ? (
-                              <a
-                                href={app.linkedin.startsWith('http') ? app.linkedin : `https://${app.linkedin}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/25 text-blue-300 hover:bg-blue-500/20 transition-all font-semibold"
-                              >
-                                🔗 Verify LinkedIn Profile ↗
-                              </a>
-                            ) : (
-                              <span className="text-gray-500 text-xs italic">No LinkedIn provided</span>
+                          {/* Automated Verification Badge */}
+                          <div className="mb-4 p-3 rounded-xl border bg-white/[0.03] border-white/10 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Automated Verification</span>
+                              {app.verification_status === 'verified' ? (
+                                <span className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                                  ✅ Verified via LinkedIn
+                                </span>
+                              ) : app.verification_status === 'partial' ? (
+                                <span className="inline-flex items-center gap-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                                  🟡 Partial Verification ({app.linkedin_name_match_score || 0}% match)
+                                </span>
+                              ) : app.verification_status === 'failed' ? (
+                                <span className="inline-flex items-center gap-1 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                                  ❌ Mismatch Flagged
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 bg-gray-500/10 border border-gray-500/30 text-gray-400 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                                  ⬜ Pending / Unverifiable
+                                </span>
+                              )}
+                            </div>
+
+                            {app.verification_data?.details?.summary && (
+                              <p className="text-gray-300 text-xs leading-relaxed">
+                                {app.verification_data.details.summary}
+                              </p>
                             )}
 
+                            <div className="flex items-center justify-between text-xs pt-1 border-t border-white/5">
+                              {app.linkedin ? (
+                                <a
+                                  href={app.linkedin.startsWith('http') ? app.linkedin : `https://${app.linkedin}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-blue-400 hover:text-blue-300 font-semibold hover:underline inline-flex items-center gap-1"
+                                >
+                                  🔗 View LinkedIn Profile ↗
+                                </a>
+                              ) : (
+                                <span className="text-gray-500 text-xs italic">No LinkedIn link provided</span>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => handleReverifyMentor(app.id)}
+                                disabled={actionLoading === app.id}
+                                className="text-saffron hover:underline text-[11px] font-bold disabled:opacity-50"
+                              >
+                                {actionLoading === app.id ? 'Verifying...' : '🔄 Re-verify'}
+                              </button>
+                            </div>
                           </div>
 
                           <div className="text-xs text-gray-300 leading-relaxed mb-6 bg-white/[0.02] p-3 rounded-xl border border-white/5">

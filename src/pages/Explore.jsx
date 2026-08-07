@@ -4,9 +4,12 @@ import {
   getPathwayStartQuestions,
   postPathwayNextQuestions,
   postPathwayRecommend,
+  getQuizQuestions,
 } from '../api'
 import { STATE_NAMES, citiesForState } from '../data/indiaLocations'
 import { formatCityState } from '../utils/location'
+import MatchBreakdownChart from '../components/charts/MatchBreakdownChart'
+import { computeMatch } from '../utils/matchEngine'
 
 // ─── Small UI helpers ─────────────────────────────────────────────────────────
 
@@ -97,6 +100,17 @@ function OptionCard({ opt, index, compareOn, isCompared, onToggleCompare }) {
       {open && (
         <div className="px-5 pb-5 pt-1 space-y-3 border-t border-white/5">
           <p className="text-gray-300 text-sm leading-relaxed">{opt.description}</p>
+
+          <div className="bg-navy-800/60 border border-saffron/20 rounded-xl p-3.5 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-white text-xs font-bold uppercase tracking-wider">🎯 Match Engine Radar Breakdown</span>
+              <span className="text-saffron text-xs font-bold">{opt.fit_label || 'Good Fit'}</span>
+            </div>
+            <MatchBreakdownChart
+              breakdown={computeMatch({}, { name: opt.name, min_marks: opt.min_marks || 80 }).breakdown}
+              collegeName={opt.name}
+            />
+          </div>
 
           <div className="flex items-start gap-2 bg-amber-500/8 border border-amber-500/20 rounded-xl p-3">
             <span className="text-amber-400 text-sm">💡</span>

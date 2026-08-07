@@ -8,6 +8,9 @@ import ExamDetails from '../components/ExamDetails'
 import CourseOverlayPanel from '../components/CourseOverlayPanel'
 import CollegeDetailCard from '../components/CollegeDetailCard'
 import RankPredictor from '../components/RankPredictor'
+import MatchBreakdownChart from '../components/charts/MatchBreakdownChart'
+import GeographicSpreadChart from '../components/charts/GeographicSpreadChart'
+import { computeMatch } from '../utils/matchEngine'
 import { getMentors, postGuidance, postScenario, postSync } from '../api'
 
 // ─── Framer Motion Variants ──────────────────────────────────────────────────
@@ -289,6 +292,37 @@ function OptionCard({ option, index, formData, collegesData }) {
         <p className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-2">💬 Honest Take</p>
         <p className="text-gray-200 text-sm leading-relaxed">{option.honest_take}</p>
       </div>
+
+      {/* Part A: Local Match Engine Score & Radar Breakdown */}
+      {(() => {
+        const firstCollegeName = visibleColleges[0]
+        const firstCollegeEntry = collegesData?.[firstCollegeName]
+        const matchResult = firstCollegeEntry?.match || computeMatch(formData || {}, { name: option.path, ...(firstCollegeEntry || {}) })
+        
+        return (
+          <div className="bg-navy-800/60 border border-saffron/20 rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">🎯</span>
+                <div>
+                  <span className="text-white text-xs font-bold uppercase tracking-wider">Local Match Score: </span>
+                  <span className="text-saffron font-bold text-sm">{matchResult.score}/100</span>
+                  <span className={`ml-2 text-[10px] uppercase font-extrabold px-2 py-0.5 rounded border ${
+                    matchResult.tier === 'high' ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' :
+                    matchResult.tier === 'moderate' ? 'bg-amber-500/10 text-amber-300 border-amber-500/30' :
+                    'bg-rose-500/10 text-rose-300 border-rose-500/30'
+                  }`}>
+                    {matchResult.tier} tier
+                  </span>
+                </div>
+              </div>
+              <span className="text-gray-500 text-[10px]">Deterministic (No AI)</span>
+            </div>
+
+            <MatchBreakdownChart breakdown={matchResult.breakdown} collegeName={firstCollegeName || option.path} />
+          </div>
+        )
+      })()}
 
       {/* Grid: colleges + cost */}
       <div className="grid sm:grid-cols-2 gap-4">
@@ -862,6 +896,24 @@ export default function Result() {
               summary={result.summary}
               name={formData?.fullName}
             />
+
+            {/* Geographic Spread Chart (Part B3) */}
+            <div className="glass-card p-5 border-sky-500/20 bg-sky-500/5 rounded-2xl">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg">🗺️</span>
+                <div>
+                  <h4 className="font-display font-bold text-sm text-white">Geographic Spread of Shortlisted Institutions</h4>
+                  <p className="text-gray-400 text-xs">Live regional breakdown based on your profile & region preferences</p>
+                </div>
+              </div>
+              <GeographicSpreadChart
+                colleges={Object.entries(result.colleges_data || {}).map(([name, info]) => ({
+                  name,
+                  state: info.state || 'Other',
+                  city: info.city,
+                }))}
+              />
+            </div>
 
             {/* 2 — Options */}
             <motion.div

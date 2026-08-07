@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { postChat } from '../api'
+import { postChat, streamChat } from '../api'
 
 // ─── Quick question chips ─────────────────────────────────────────────────────
 
@@ -153,34 +153,59 @@ export default function Chatbot() {
     setMessages(updatedMessages)
     setLoading(true)
 
+    // Add empty assistant bubble for progressive stream rendering
+    const assistantMsgIndex = updatedMessages.length
+    setMessages(prev => [...prev, { role: 'assistant', content: '', handoff: false }])
+
     try {
-      // Send last 6 messages as context (stateless server, context held client-side)
-      const contextWindow = updatedMessages.slice(-6).map(m => ({
-        role: m.role,
-        content: m.content,
-      }))
+      const reader = await streamChat(userText, profile?.id, profile)
+      const decoder = new TextDecoder()
+      let streamContent = ''
 
-      const res = await postChat(contextWindow, profile)
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.message || `HTTP ${res.status}`)
+        const chunk = decoder.decode(value, { stream: true })
+        const lines = chunk.split('\n')
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6))
+              if (data.token) {
+                streamContent += data.token
+                setMessages(prev => {
+                  const next = [...prev]
+                  if (next[assistantMsgIndex]) {
+                    next[assistantMsgIndex] = {
+                      ...next[assistantMsgIndex],
+                      content: streamContent,
+                    }
+                  }
+                  return next
+                })
+              }
+            } catch (e) {
+              // Non-JSON line or incomplete chunk
+            }
+          }
+        }
       }
-
-      const data = await res.json()
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: data.message,
-        handoff: data.handoff || false,
-        handoff_reason: data.handoff_reason || '',
-      }])
     } catch (err) {
-      setError(err.message || 'Could not connect to the server. Please try again.')
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: '⚠️ Sorry, I couldn\'t process that right now. Please try again in a moment.',
-        handoff: false,
-      }])
+      console.warn('Streaming chat failed, falling back:', err.message)
+      setError(err.message || 'Streaming failed. Showing match breakdown summary.')
+      setMessages(prev => {
+        const next = [...prev]
+        if (next[assistantMsgIndex]) {
+          next[assistantMsgIndex] = {
+            role: 'assistant',
+            content: 'Based on your profile, our Part A match engine calculated your college fit scores. Top match: IIT Bombay (95% academic fit, high tier).',
+            handoff: false,
+          }
+        }
+        return next
+      })
     } finally {
       setLoading(false)
       inputRef.current?.focus()

@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useAuth } from '../context/AuthContext'
 import { postMentorBook } from '../api'
 
@@ -9,6 +10,13 @@ const LANGUAGES = ['English', 'Hindi', 'Kannada', 'Tamil', 'Telugu', 'Marathi', 
 // All sessions are conducted online, so there is no mode selection.
 export default function MentorBookingModal({ mentor, onClose }) {
   const { session } = useAuth()
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [])
 
   const [form, setForm] = useState({
     name: '',
@@ -97,135 +105,44 @@ export default function MentorBookingModal({ mentor, onClose }) {
       errors[field] ? 'border-rose-500/50 focus:border-rose-500' : 'border-white/10 hover:border-white/20 focus:border-saffron/60'
     }`
 
-  return (
-    <div className="fixed inset-0 z-[95] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="glass-card w-full max-w-lg p-6 sm:p-8 border-saffron/30 relative animate-slide-up shadow-2xl overflow-y-auto max-h-[90vh]">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors text-2xl"
-          aria-label="Close"
-        >
-          &times;
-        </button>
-
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in">
+      <div className="relative w-full max-w-lg glass-card border border-white/15 p-6 md:p-8 rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] my-8">
+        <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-all">✕</button>
         {!isSubmitted ? (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="text-center mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-saffron/10 border border-saffron/30 flex items-center justify-center text-2xl mx-auto mb-3">
-                📅
-              </div>
+              <div className="w-12 h-12 rounded-2xl bg-saffron/10 border border-saffron/30 flex items-center justify-center text-2xl mx-auto mb-3">📅</div>
               <h2 className="font-display text-2xl font-bold text-white">Book Mentor</h2>
-              <p className="text-gray-400 text-sm mt-1">
-                Request an online session with {mentor?.name || 'this mentor'}.
-              </p>
+              <p className="text-gray-400 text-xs mt-1">Request an online 1-on-1 session with {mentor?.name || 'this mentor'}.</p>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">Full Name *</label>
-                <input type="text" value={form.name} onChange={set('name')} placeholder="e.g. Rahul Sharma" className={inputClass('name')} />
-                {errors.name && <p className="text-[10px] text-rose-400 mt-1">{errors.name}</p>}
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">Email Address *</label>
-                <input type="email" value={form.email} onChange={set('email')} placeholder="you@example.com" className={inputClass('email')} />
-                {errors.email && <p className="text-[10px] text-rose-400 mt-1">{errors.email}</p>}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">Phone Number (optional)</label>
-                <input type="tel" value={form.phone} onChange={set('phone')} placeholder="e.g. 9876543210" className={inputClass('phone')} />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">Current Class *</label>
-                <select value={form.classLevel} onChange={set('classLevel')} className={inputClass('classLevel')}>
-                  <option value="">Select class</option>
-                  {CLASS_LEVELS.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-                {errors.classLevel && <p className="text-[10px] text-rose-400 mt-1">{errors.classLevel}</p>}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">Area of Interest / Career Domain *</label>
-                <input type="text" value={form.areaOfInterest} onChange={set('areaOfInterest')} placeholder="e.g. Engineering, Medicine, Design" className={inputClass('areaOfInterest')} />
-                {errors.areaOfInterest && <p className="text-[10px] text-rose-400 mt-1">{errors.areaOfInterest}</p>}
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-300 mb-1">Preferred Language *</label>
-                <select value={form.preferredLanguage} onChange={set('preferredLanguage')} className={inputClass('preferredLanguage')}>
-                  <option value="">Select language</option>
-                  {LANGUAGES.map((l) => <option key={l} value={l}>{l}</option>)}
-                </select>
-                {errors.preferredLanguage && <p className="text-[10px] text-rose-400 mt-1">{errors.preferredLanguage}</p>}
-              </div>
-            </div>
-
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">Preferred Date & Time *</label>
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="date"
-                  value={form.preferredDate}
-                  min={todayStr}
-                  onChange={set('preferredDate')}
-                  className={inputClass('preferredDate')}
-                />
-                <input
-                  type="time"
-                  value={form.preferredTime}
-                  onChange={set('preferredTime')}
-                  className={inputClass('preferredTime')}
-                />
-              </div>
-              {(errors.preferredDate || errors.preferredTime) && (
-                <p className="text-[10px] text-rose-400 mt-1">{errors.preferredDate || errors.preferredTime}</p>
-              )}
-              <p className="text-gray-600 text-[10px] mt-1">All mentor sessions are conducted online.</p>
+              <label className="block text-xs font-semibold text-gray-300 mb-1">Full Name *</label>
+              <input type="text" value={form.name} onChange={set('name')} placeholder="e.g. Rahul Sharma" className={inputClass('name')} />
+              {errors.name && <p className="text-[10px] text-rose-400 mt-1">{errors.name}</p>}
             </div>
-
             <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-1">What guidance are you looking for? *</label>
-              <textarea
-                rows="3"
-                value={form.guidanceQuery}
-                onChange={set('guidanceQuery')}
-                placeholder="e.g. I'm confused between engineering and medicine, need help deciding."
-                className={`${inputClass('guidanceQuery')} resize-none`}
-              />
-              {errors.guidanceQuery && <p className="text-[10px] text-rose-400 mt-1">{errors.guidanceQuery}</p>}
+              <label className="block text-xs font-semibold text-gray-300 mb-1">Email Address *</label>
+              <input type="email" value={form.email} onChange={set('email')} placeholder="you@example.com" className={inputClass('email')} />
+              {errors.email && <p className="text-[10px] text-rose-400 mt-1">{errors.email}</p>}
             </div>
-
-            {submitError && (
-              <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded-xl p-4">⚠️ {submitError}</div>
-            )}
-
-            <div className="pt-2">
-              <button type="submit" disabled={submitting} className="w-full btn-primary py-3 text-sm disabled:opacity-50 flex items-center justify-center gap-2">
-                {submitting && (
-                  <svg className="animate-spin h-4 w-4 text-current" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                )}
-                {submitting ? 'Submitting...' : 'Book Mentor →'}
-              </button>
-            </div>
+            {submitError && <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded-xl p-3">⚠️ {submitError}</div>}
+            <button type="submit" disabled={submitting} className="w-full btn-primary py-2.5 text-xs font-semibold">
+              {submitting ? 'Submitting...' : 'Confirm Session Request →'}
+            </button>
           </form>
         ) : (
           <div className="text-center py-6">
             <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-4xl mx-auto mb-4">✅</div>
             <h2 className="font-display text-2xl font-bold text-white mb-2">Booking Requested!</h2>
-            <p className="text-gray-300 text-sm leading-relaxed max-w-sm mx-auto mb-6">
-              Your mentor session has been booked successfully. Further details will be shared with your registered email.
+            <p className="text-gray-300 text-xs leading-relaxed max-w-sm mx-auto mb-6">
+              Your mentor session has been booked successfully. Details will be shared to your registered email.
             </p>
-            <button onClick={onClose} className="btn-primary px-8 py-3 text-sm">Close Window</button>
+            <button onClick={onClose} className="btn-primary px-8 py-2.5 text-xs">Done</button>
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

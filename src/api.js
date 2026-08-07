@@ -100,6 +100,21 @@ export async function getStudentBookings(authToken) {
   })
 }
 
+// Fetch authoritative user role from database
+export async function getAuthRole(authToken) {
+  return apiFetch('/api/auth/role', {
+    headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+  })
+}
+
+// Admin: trigger on-demand re-verification of LinkedIn profile
+export async function reverifyMentorApplication(id, authToken) {
+  return apiFetch(`/api/admin/mentor-applications/${id}/reverify`, {
+    method: 'POST',
+    headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+  })
+}
+
 // Admin: monitor all student -> mentor questions across the platform.
 export async function getAdminMentorMessages(authToken) {
   return apiFetch('/api/admin/mentor-messages', {
@@ -227,3 +242,41 @@ export async function postPathwayRecommend(formData, answers, useJudge = false) 
     body: JSON.stringify({ formData, answers, useJudge }),
   })
 }
+
+// ─── Part A & Part B Extensions ───────────────────────────────────────────────
+
+export async function postMatchLocal(studentProfile, college, colleges) {
+  return apiFetch('/api/match/local', {
+    method: 'POST',
+    body: JSON.stringify({ studentProfile, college, colleges }),
+  })
+}
+
+export async function getQuizQuestions() {
+  return apiFetch('/api/quiz/questions')
+}
+
+/**
+ * Stream AI Chat guidance via SSE (POST /api/chat/stream)
+ * Returns ReadableStream reader for token-by-token rendering.
+ */
+export async function streamChat(question, profileId, formData) {
+  const url = `${BASE_URL}/api/chat/stream`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question, profileId, formData }),
+  })
+  if (!res.ok) {
+    throw new Error(`HTTP error ${res.status}`)
+  }
+  return res.body.getReader()
+}
+
+export async function postAnalyticsEvent(eventType, metadata = {}) {
+  return apiFetch('/api/analytics/event', {
+    method: 'POST',
+    body: JSON.stringify({ event_type: eventType, metadata }),
+  }).catch(() => {})
+}
+

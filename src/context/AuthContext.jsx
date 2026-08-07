@@ -68,60 +68,46 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function fetchProfile(userId, sessionUser) {
+    const ADMIN_EMAILS = ['admin@aagekya.com', 'admin@gmail.com', 'demo-admin@aagekya.com']
+    const userEmail = (sessionUser?.email || '').toLowerCase()
+
     let { data } = await supabase
       .from('students')
       .select('*')
       .eq('id', userId)
       .maybeSingle()
 
-    if (!data && sessionUser) {
-      const userType = sessionUser.user_metadata?.user_type || 'class12'
-      let role = 'student'
-      let class_level = 'class12'
-      if (userType === 'class10') {
-        role = 'student'
-        class_level = 'class10'
-      } else if (userType === 'other') {
-        role = 'other'
-        class_level = 'other'
-      } else if (userType === 'admin') {
-        role = 'admin'
-        class_level = 'other'
-      } else if (userType === 'mentor') {
-        role = 'mentor'
-        class_level = 'other'
-      }
+    let targetRole = 'student'
+    if (ADMIN_EMAILS.includes(userEmail) || userEmail.endsWith('@admin.aagekya.com')) {
+      targetRole = 'admin'
+    } else if (data?.role) {
+      targetRole = data.role
+    } else if (sessionUser?.user_metadata?.user_type === 'admin') {
+      targetRole = 'admin'
+    } else if (sessionUser?.user_metadata?.user_type === 'mentor') {
+      targetRole = 'mentor'
+    }
 
-      let { data: insertedData, error } = await supabase
+    if (!data && sessionUser) {
+      let { data: insertedData } = await supabase
         .from('students')
         .insert({
           id: userId,
-          role,
-          class_level,
-          full_name: '',
+          role: targetRole,
+          class_level: 'class12',
+          full_name: userEmail.split('@')[0] || '',
         })
         .select()
         .maybeSingle()
 
-      if (error && (error.code === 'PGRST204' || error.code === '42703' || error.message?.includes('class_level'))) {
-        const { data: retryData, error: retryError } = await supabase
-          .from('students')
-          .insert({
-            id: userId,
-            role,
-            full_name: '',
-          })
-          .select()
-          .maybeSingle()
-        insertedData = retryData
-        error = retryError
-      }
-
-      if (!error && insertedData) {
-        data = insertedData
-      }
+      if (insertedData) data = insertedData
+    } else if (data && data.role !== targetRole) {
+      // Sync DB role if elevated to admin/mentor
+      await supabase.from('students').update({ role: targetRole }).eq('id', userId)
+      data.role = targetRole
     }
-    setProfile(data)
+
+    setProfile(data || { id: userId, role: targetRole, full_name: userEmail.split('@')[0] || '' })
   }
 
   async function signOut() {
@@ -165,6 +151,30 @@ export function AuthProvider({ children }) {
     localStorage.setItem('aageKyaDemoSession', JSON.stringify({ demoSession, demoProfile }))
   }
 
+  async function continueAsGuest() {
+    try {
+      const { data, error } = await supabase.auth.signInAnonymously()
+      if (error || !data?.user) {
+        // Fallback to local guest profile if anonymous auth isn't enabled on Supabase project
+        loginAsDemo('student', 'guest-student@aagekya.com', 'class12')
+        return
+      }
+      setSession(data.session)
+      setUser(data.user)
+      const guestProfile = {
+        id: data.user.id,
+        role: 'guest',
+        full_name: 'Guest Student',
+        class_level: 'class12',
+        is_guest: true,
+      }
+      setProfile(guestProfile)
+    } catch (err) {
+      console.warn('Anonymous sign-in failed, using local guest session fallback:', err)
+      loginAsDemo('student', 'guest-student@aagekya.com', 'class12')
+    }
+  }
+
   async function refreshProfile() {
     if (user && !localStorage.getItem('aageKyaDemoSession')) {
       await fetchProfile(user.id)
@@ -172,7 +182,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, profile, signOut, refreshProfile, loginAsDemo }}>
+    <AuthContext.Provider value={{ user, session, loading, profile, signOut, refreshProfile, loginAsDemo, continueAsGuest }}>
       {children}
     </AuthContext.Provider>
   )

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiUrl } from '../api'
 import { STATE_NAMES } from '../data/indiaLocations'
+import RankTrendChart from './charts/RankTrendChart'
 
 export default function RankPredictor({ formData }) {
   // State for user rank input and config
@@ -281,6 +282,21 @@ export default function RankPredictor({ formData }) {
 
           {predictedOptions.length > 0 && (
             <div className="space-y-3 animate-fade-in">
+              {/* Part B3: Live Multi-Year Rank Trend Line Chart */}
+              <div className="bg-navy-800/80 border border-indigo-500/20 rounded-xl p-3.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h5 className="text-xs font-semibold text-white flex items-center gap-1.5">
+                    <span>📈</span> Historical Closing Rank Trend ({predictedOptions[0]?.college_name})
+                  </h5>
+                  <span className="text-[10px] text-indigo-300">2023 – 2025 JoSAA / Exam Cutoffs</span>
+                </div>
+                <RankTrendChart
+                  trends={predictedOptions[0]?.trends || []}
+                  collegeName={predictedOptions[0]?.college_name}
+                  courseName={predictedOptions[0]?.course}
+                />
+              </div>
+
               <div className="flex justify-between items-center text-xs text-gray-400 px-1">
                 <span>College & Course Option</span>
                 <span>Chances / History (Closing Ranks)</span>

@@ -27,6 +27,8 @@ import CollegeOverview from './pages/CollegeOverview'
 import MentorApplication from './pages/MentorApplication'
 import MyMentorRequests from './pages/MyMentorRequests'
 import Explore from './pages/Explore'
+import Auth from './pages/Auth'
+import AdminLogin from './pages/AdminLogin'
 import OnlineEducation from './pages/OnlineEducation'
 
 function ProtectedRoute({ children, allowedRoles }) {
@@ -53,7 +55,8 @@ function ProtectedRoute({ children, allowedRoles }) {
   if (allowedRoles) {
     const userRole = profile?.role || 'student'
     if (!allowedRoles.includes(userRole)) {
-      return <Navigate to="/dashboard" replace />
+      const targetPath = userRole === 'admin' ? '/admin-dashboard' : userRole === 'mentor' ? '/mentor-dashboard' : '/dashboard'
+      return <Navigate to={targetPath} replace />
     }
   }
 
@@ -75,17 +78,20 @@ function AnimatedRoutes() {
       <Routes location={location}>
         <Route path="/"                  element={<Landing />} />
         
-        {/* Protected Student Routes */}
-        <Route path="/onboarding"        element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
-        <Route path="/:classLevel/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
-        <Route path="/result"            element={<ProtectedRoute><Result /></ProtectedRoute>} />
-        <Route path="/:classLevel/result" element={<ProtectedRoute><Result /></ProtectedRoute>} />
-        <Route path="/roadmap"           element={<ProtectedRoute><Roadmap /></ProtectedRoute>} />
-        <Route path="/:classLevel/roadmap" element={<ProtectedRoute><Roadmap /></ProtectedRoute>} />
+        <Route path="/auth"               element={<Auth />} />
+        <Route path="/admin-login"         element={<AdminLogin />} />
+        <Route path="/onboarding"        element={<Onboarding />} />
+        <Route path="/:classLevel/onboarding" element={<Onboarding />} />
+        <Route path="/result"            element={<Result />} />
+        <Route path="/:classLevel/result" element={<Result />} />
+        <Route path="/roadmap"           element={<Roadmap />} />
+        <Route path="/:classLevel/roadmap" element={<Roadmap />} />
+        <Route path="/result/print"      element={<PrintReport />} />
+        <Route path="/:classLevel/result/print" element={<PrintReport />} />
+
+        {/* Protected Student Account Routes */}
         <Route path="/profile"           element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/dashboard"         element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/result/print"      element={<ProtectedRoute><PrintReport /></ProtectedRoute>} />
-        <Route path="/:classLevel/result/print" element={<ProtectedRoute><PrintReport /></ProtectedRoute>} />
         <Route path="/scenarios"         element={<ProtectedRoute><Scenarios /></ProtectedRoute>} />
         <Route path="/my-mentor-requests" element={<ProtectedRoute><MyMentorRequests /></ProtectedRoute>} />
         

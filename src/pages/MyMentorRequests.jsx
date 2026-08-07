@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { getMentorMessages, getStudentBookings } from '../api'
+import { usePresence } from '../hooks/usePresence'
+import { useRealtimeChat } from '../hooks/useRealtimeChat'
 
 function formatDate(ts) {
   if (!ts) return ''

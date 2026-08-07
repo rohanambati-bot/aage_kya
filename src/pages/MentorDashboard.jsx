@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { patchMentorReply, getMentorWorkspace, respondMentorBooking } from '../api'
+import { usePresence } from '../hooks/usePresence'
 
 function formatDate(ts) {
   if (!ts) return ''
@@ -49,13 +50,21 @@ function ApplicationBanner({ application, linked }) {
   }
 
   if (status === 'pending') {
+    const vStatus = application?.verification_status
     return (
       <div className="glass-card border-amber-500/20 bg-amber-500/5 p-4 sm:p-5 mb-6 flex items-start gap-3">
         <span className="text-2xl flex-shrink-0">⏳</span>
         <div>
-          <p className="text-amber-300 text-sm font-bold">Your mentor application is under review.</p>
+          <div className="flex items-center gap-2">
+            <p className="text-amber-300 text-sm font-bold">Your mentor application is under review.</p>
+            {vStatus === 'verified' && (
+              <span className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                ✅ Verified via LinkedIn
+              </span>
+            )}
+          </div>
           <p className="text-gray-400 text-xs mt-0.5">
-            You will be able to access mentoring features once your application has been approved.
+            You will be able to access mentoring features once an admin approves your application.
             Submitted {formatDate(application?.created_at)}.
           </p>
         </div>

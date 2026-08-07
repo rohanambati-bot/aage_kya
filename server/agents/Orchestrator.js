@@ -7,6 +7,7 @@ import {
 import { findPathwayById } from '../data/indiaPathways.js'
 import { enforceGuidanceEvidence } from '../domain/verification/verifyEvidence.js'
 import { callLLM, isAiAvailable, getAiStatus } from '../ai/llmClient.js'
+import { computeMatch } from '../engine/localMatchEngine.js'
 
 // Helper to check environment configuration
 const supabaseUrl = process.env.SUPABASE_URL || 'https://your-project-ref.supabase.co'
@@ -1695,6 +1696,7 @@ export function assembleGuidanceResponse(state, formData = {}, totalDurationMs =
     mentors: state.mentorMatches,
     youtube_videos: state.youtubeResources,
     colleges_data: (state.retrievedColleges || []).reduce((acc, c) => {
+      const matchObj = (state.localMatchScores || []).find(m => m.college_id === c.id || m.college_name === c.name)
       acc[c.name] = {
         source_url:      c.source_url,
         yearly_cost_min: c.yearly_cost_min,
@@ -1702,6 +1704,9 @@ export function assembleGuidanceResponse(state, formData = {}, totalDurationMs =
         city:            c.city,
         state:           c.state,
         college_type:    c.college_type,
+        intake_capacity: c.intake_capacity ?? null,
+        placement_rate:  c.placement_rate ?? null,
+        match:           matchObj ? matchObj.match : computeMatch(formData, c),
       }
       return acc
     }, {}),
@@ -1797,6 +1802,16 @@ export async function runMultiAgentOrchestrator(formData) {
 
   state.retrievedColleges = ragResult?.colleges || []
   state.retrievedScholarships = ragResult?.scholarships || []
+
+  // ─── PART A: Deterministic Local Match Engine Scoring ───
+  state.localMatchScores = (state.retrievedColleges || []).map(college => {
+    const match = computeMatch(formData, college)
+    return {
+      college_id: college.id,
+      college_name: college.name,
+      match,
+    }
+  })
 
   if (combined && Array.isArray(combined.recommendations) && combined.recommendations.length > 0) {
     // Combined call succeeded — unpack it into the state shape the rest expects.
