@@ -3,6 +3,7 @@ import { getSupabaseClient, guidanceWriter } from '../utils/db.js'
 import { fetchCollegesForStudent, fetchScholarshipsForStudent, INCOME_LABELS, CITY_LABELS, formatCollegesForPrompt, formatScholarshipsForPrompt, buildCollegesDataMap, matchScholarship } from '../utils/ragHelpers.js'
 import { guidanceLimiter, roadmapLimiter, createRateLimiter } from '../middleware/rateLimiter.js'
 import { callLLM } from '../ai/llmClient.js'
+import { resolveClassLevel, DOMAINS, QUESTION_BANK } from '../data/indiaPathways.js'
 
 const router = express.Router()
 

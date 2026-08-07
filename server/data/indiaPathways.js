@@ -624,3 +624,13 @@ export function computeAffordability(course) {
     payback_years: paybackYears, // approx years of starting salary to recover cost
   }
 }
+
+export function resolveClassLevel(classLevel, routeLabel = '') {
+  if (classLevel === 'class10' || classLevel === 'class12') return classLevel
+  if (!classLevel) {
+    console.warn(`[PathwayAdvisor] ${routeLabel} called with no classLevel param — defaulting to class12.`)
+  } else {
+    console.warn(`[PathwayAdvisor] ${routeLabel} called with invalid classLevel="${classLevel}" — defaulting to class12.`)
+  }
+  return 'class12'
+}
