@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { postChat, streamChat } from '../api'
+import { streamChat } from '../api'
 
 // ─── Quick question chips ─────────────────────────────────────────────────────
 
@@ -162,9 +162,13 @@ export default function Chatbot() {
       const decoder = new TextDecoder()
       let streamContent = ''
 
-      while (true) {
+      let reading = true
+      while (reading) {
         const { done, value } = await reader.read()
-        if (done) break
+        if (done) {
+          reading = false
+          break
+        }
 
         const chunk = decoder.decode(value, { stream: true })
         const lines = chunk.split('\n')

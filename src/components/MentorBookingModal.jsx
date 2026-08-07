@@ -3,11 +3,6 @@ import { createPortal } from 'react-dom'
 import { useAuth } from '../context/AuthContext'
 import { postMentorBook } from '../api'
 
-const CLASS_LEVELS = ['10th', '12th', 'College']
-const LANGUAGES = ['English', 'Hindi', 'Kannada', 'Tamil', 'Telugu', 'Marathi', 'Bengali', 'Other']
-
-// "Book Mentor" request form (replaces the old Cal.com "Book Call" redirect).
-// All sessions are conducted online, so there is no mode selection.
 export default function MentorBookingModal({ mentor, onClose }) {
   const { session } = useAuth()
 
@@ -27,15 +22,13 @@ export default function MentorBookingModal({ mentor, onClose }) {
     preferredLanguage: '',
     preferredDate: '',
     preferredTime: '',
-    guidanceQuery: '',
+    notes: '',
   })
+
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [isSubmitted, setIsSubmitted] = useState(false)
-
-  // Local YYYY-MM-DD for the date input's min attribute (avoids past dates).
-  const todayStr = new Date().toISOString().slice(0, 10)
 
   const set = (field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }))
@@ -46,21 +39,6 @@ export default function MentorBookingModal({ mentor, onClose }) {
     const next = {}
     if (!form.name.trim()) next.name = 'Please enter your name.'
     if (!form.email.trim()) next.email = 'Please enter your email.'
-    else if (!/\S+@\S+\.\S+/.test(form.email)) next.email = 'Please enter a valid email.'
-    if (!form.classLevel) next.classLevel = 'Please select your current class.'
-    if (!form.areaOfInterest.trim()) next.areaOfInterest = 'Please enter your area of interest.'
-    if (!form.preferredLanguage) next.preferredLanguage = 'Please select a preferred language.'
-    if (!form.preferredDate) next.preferredDate = 'Please pick a preferred date.'
-    if (!form.preferredTime) next.preferredTime = 'Please pick a preferred time.'
-    if (form.preferredDate && form.preferredTime) {
-      const picked = new Date(`${form.preferredDate}T${form.preferredTime}`)
-      if (Number.isNaN(picked.getTime())) {
-        next.preferredDate = 'Please pick a valid date and time.'
-      } else if (picked.getTime() < Date.now()) {
-        next.preferredDate = 'Please pick a date and time in the future.'
-      }
-    }
-    if (!form.guidanceQuery.trim()) next.guidanceQuery = 'Please tell us what guidance you need.'
     setErrors(next)
     return Object.keys(next).length === 0
   }
@@ -71,20 +49,18 @@ export default function MentorBookingModal({ mentor, onClose }) {
     setSubmitting(true)
     setSubmitError('')
     try {
-      // Combine the separate date + time inputs into a single ISO timestamp
-      // for the backend (avoids the flaky native datetime-local widget).
-      const preferredDateTime = new Date(`${form.preferredDate}T${form.preferredTime}`).toISOString()
       const res = await postMentorBook(
         {
           mentorId: mentor.id,
-          contactName: form.name,
-          contactEmail: form.email,
-          contactPhone: form.phone,
+          studentName: form.name,
+          studentEmail: form.email,
+          phone: form.phone,
           classLevel: form.classLevel,
           areaOfInterest: form.areaOfInterest,
           preferredLanguage: form.preferredLanguage,
-          preferredDateTime,
-          guidanceQuery: form.guidanceQuery,
+          preferredDate: form.preferredDate,
+          preferredTime: form.preferredTime,
+          notes: form.notes,
         },
         session?.access_token
       )
@@ -101,8 +77,8 @@ export default function MentorBookingModal({ mentor, onClose }) {
   }
 
   const inputClass = (field) =>
-    `w-full bg-navy-800 border rounded-xl px-4 py-2.5 text-white placeholder-gray-500 text-sm transition-all duration-200 outline-none focus:ring-2 focus:ring-saffron/40 ${
-      errors[field] ? 'border-rose-500/50 focus:border-rose-500' : 'border-white/10 hover:border-white/20 focus:border-saffron/60'
+    `w-full bg-[#111827] border rounded-xl px-4 py-2.5 text-white placeholder-gray-500 text-xs transition-all outline-none ${
+      errors[field] ? 'border-rose-500/50' : 'border-white/10 hover:border-white/20'
     }`
 
   return createPortal(

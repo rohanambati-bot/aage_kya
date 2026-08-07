@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { NavLink, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import AuthModal from './AuthModal'
 import SearchBar from './SearchBar'
 
 export default function Navbar() {
@@ -31,7 +30,6 @@ export default function Navbar() {
         { to: '/mentors',    label: 'Mentors' },
       ]
   const [isOpen, setIsOpen]     = useState(false)
-  const [isAuthOpen, setIsAuthOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)

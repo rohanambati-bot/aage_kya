@@ -1,22 +1,8 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { postMentorAsk } from '../api'
 
-const CATEGORIES = [
-  'Career Guidance',
-  'Stream / Subject Choice',
-  'College Admissions',
-  'Exam Preparation',
-  'Study Abroad',
-  'Scholarships',
-  'Project / Skills Help',
-  'Other',
-]
-
-// "Ask Mentor" async messaging modal (replaces the old real-time "Chat Now").
-// A student sends a question; the mentor replies later from their dashboard.
 export default function AskMentorModal({ mentor, onClose }) {
   const { session } = useAuth()
 
@@ -40,19 +26,9 @@ export default function AskMentorModal({ mentor, onClose }) {
   const [submitError, setSubmitError] = useState('')
   const [isSubmitted, setIsSubmitted] = useState(false)
 
-  const set = (field) => (e) => {
-    setForm((prev) => ({ ...prev, [field]: e.target.value }))
-    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: '' }))
-  }
-
   const validate = () => {
     const next = {}
     if (!form.name.trim()) next.name = 'Please enter your name.'
-    if (!form.email.trim()) next.email = 'Please enter your email.'
-    else if (!/\S+@\S+\.\S+/.test(form.email)) next.email = 'Please enter a valid email.'
-    if (!form.classLevel) next.classLevel = 'Please select your class.'
-    if (!form.subject.trim()) next.subject = 'Please enter a subject.'
-    if (!form.category) next.category = 'Please select a category.'
     if (!form.question.trim()) next.question = 'Please type your question.'
     setErrors(next)
     return Object.keys(next).length === 0
@@ -105,6 +81,7 @@ export default function AskMentorModal({ mentor, onClose }) {
             <div>
               <label className="block text-xs font-medium text-gray-300 mb-1">Your Question</label>
               <textarea rows={4} value={form.question} onChange={e => setForm({ ...form, question: e.target.value })} placeholder="What would you like to know?" className="w-full bg-[#111827] border border-white/10 rounded-xl px-4 py-2 text-white text-xs" required />
+              {errors.question && <p className="text-rose-400 text-[10px] mt-1">{errors.question}</p>}
             </div>
             {submitError && <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs rounded-xl p-3">⚠️ {submitError}</div>}
             <button type="submit" disabled={submitting} className="w-full btn-primary py-2.5 text-xs">

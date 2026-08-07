@@ -4,7 +4,6 @@ import {
   getPathwayStartQuestions,
   postPathwayNextQuestions,
   postPathwayRecommend,
-  getQuizQuestions,
 } from '../api'
 import { STATE_NAMES, citiesForState } from '../data/indiaLocations'
 import { formatCityState } from '../utils/location'

@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
 import { patchMentorReply, getMentorWorkspace, respondMentorBooking } from '../api'
-import { usePresence } from '../hooks/usePresence'
 
 function formatDate(ts) {
   if (!ts) return ''

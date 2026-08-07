@@ -1,3 +1,4 @@
+/* global process */
 import fs from 'fs'
 import path from 'path'
 import { createClient } from '@supabase/supabase-js'
@@ -29,11 +30,11 @@ async function wipeDatabase() {
   console.log("🔥 Wiping custom database tables...")
 
   try {
-    const res1 = await supabase.from('guidance_results').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-    const res2 = await supabase.from('mentor_applications').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-    const res3 = await supabase.from('qa_posts').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-    const res4 = await supabase.from('mentors').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-    const res5 = await supabase.from('students').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    await supabase.from('guidance_results').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    await supabase.from('mentor_applications').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    await supabase.from('qa_posts').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    await supabase.from('mentors').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    await supabase.from('students').delete().neq('id', '00000000-0000-0000-0000-000000000000')
     
     console.log("✅ Wiped custom table records cleanly!")
   } catch (err) {
