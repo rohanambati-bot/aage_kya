@@ -1,11 +1,15 @@
 import assert from 'node:assert/strict'
-import { readFile } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 
-const serverUrl = new URL('../routes/guidance.js', import.meta.url)
+const routesDir = new URL('../routes/', import.meta.url)
 
 test('guidance mutations stay behind the server-managed Supabase client', async () => {
-  const source = await readFile(serverUrl, 'utf8')
+  const files = await readdir(routesDir)
+  const sources = await Promise.all(
+    files.filter(f => f.endsWith('.js')).map(f => readFile(new URL(f, routesDir), 'utf8'))
+  )
+  const source = sources.join('\n')
 
   assert.doesNotMatch(
     source,
