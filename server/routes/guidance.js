@@ -253,6 +253,48 @@ router.post('/api/roadmap', validateRoadmapBody, roadmapLimiter, async (req, res
       }
     }
 
+function getMockRoadmap(form, option) {
+  const pathName = option?.path || 'Selected Career'
+  return {
+    career_path: pathName,
+    overview: `A realistic 4-year plan to excel in ${pathName}, designed around your academic level (${form?.marks || '85'}%) and financial considerations.`,
+    years: [
+      {
+        year: 1,
+        focus: "Fundamentals & Basic Foundations",
+        skills: ["Fundamental Concepts", "Essential Tools & Frameworks", "Basic Coding/Analysis"],
+        certifications: ["Introductory Free Course Certificate (Coursera/freeCodeCamp)"],
+        internships_projects: ["Personal portfolio website", "Small static data analysis project"],
+        milestones: ["Master basic command line and version control", "Build 2 small personal projects"]
+      },
+      {
+        year: 2,
+        focus: "Intermediate Skills & Collaboration",
+        skills: ["Advanced Tools", "Database Management / SQL", "Technical Writing"],
+        certifications: ["Google Career Certificate / NPTEL Swayam Certificate"],
+        internships_projects: ["Collaborative open-source contribution", "Medium-sized full-stack application"],
+        milestones: ["Build a LinkedIn presence", "Get first freelance gig or hackathon participation"]
+      },
+      {
+        year: 3,
+        focus: "Specialisation & Practical Internships",
+        skills: ["Advanced Architecture", "System Design", "Cloud Computing Basics"],
+        certifications: ["AWS Cloud Practitioner or equivalent specialization"],
+        internships_projects: ["2-month summer internship in a local startup", "Live project with active users"],
+        milestones: ["Secure a paid summer internship", "Achieve 500+ connections on professional networks"]
+      },
+      {
+        year: 4,
+        focus: "Graduation & Industry Transition",
+        skills: ["Placement Preparation", "Advanced Interview Coding/Cases", "Negotiation Skills"],
+        certifications: ["Final Capstone Project Credential"],
+        internships_projects: ["Major graduation project", "Production-level deployment of an app"],
+        milestones: ["Secure a pre-placement offer (PPO) or clear target exams", "Graduate with a strong resume and portfolio"]
+      }
+    ]
+  }
+}
+
     // Call the shared LLM client if not cached
     const prompt = buildRoadmapPrompt(formData, option)
     let result

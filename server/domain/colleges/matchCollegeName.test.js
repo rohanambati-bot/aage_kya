@@ -102,12 +102,12 @@ test('property: any returned row is a full-name match for the request', () => {
 })
 
 test('/api/college-details uses the full-name matcher, not the first word', () => {
-  const indexPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'index.js')
+  const indexPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'routes', 'colleges.js')
   const source = readFileSync(indexPath, 'utf8')
 
-  const routeStart = source.indexOf("app.get('/api/college-details'")
+  const routeStart = source.indexOf("router.get('/api/college-details'")
   assert.notEqual(routeStart, -1, '/api/college-details route not found')
-  const routeEnd = source.indexOf("app.get('/api/course-feedback'", routeStart)
+  const routeEnd = source.indexOf("router.get('/api/course-feedback'", routeStart)
   const route = source.slice(routeStart, routeEnd === -1 ? source.length : routeEnd)
 
   assert.ok(!route.includes("name.split(' ')[0]"), 'route must not match on the first word of the name')

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 
-const serverUrl = new URL('../index.js', import.meta.url)
+const serverUrl = new URL('../routes/guidance.js', import.meta.url)
 
 test('guidance mutations stay behind the server-managed Supabase client', async () => {
   const source = await readFile(serverUrl, 'utf8')

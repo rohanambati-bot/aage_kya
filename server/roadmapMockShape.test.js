@@ -17,7 +17,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
-const indexPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'index.js')
+const indexPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'routes', 'guidance.js')
 const source = readFileSync(indexPath, 'utf8')
 
 /** Pull a top-level `function name(...) { ... }` out of the source by brace matching. */
@@ -70,9 +70,9 @@ test('getMockRoadmap tolerates a missing option', () => {
 })
 
 test('/api/roadmap falls back to getMockRoadmap, and callGemini is gone', () => {
-  const routeStart = source.indexOf("app.post('/api/roadmap'")
+  const routeStart = source.indexOf("router.post('/api/roadmap'")
   assert.notEqual(routeStart, -1, '/api/roadmap route not found')
-  const routeEnd = source.indexOf("app.post('/api/generate-career-path'", routeStart)
+  const routeEnd = source.indexOf("router.post('/api/generate-career-path'", routeStart)
   const route = source.slice(routeStart, routeEnd === -1 ? source.length : routeEnd)
 
   assert.ok(route.includes('callLLM('), 'roadmap route should use the shared callLLM')
