@@ -53,10 +53,54 @@ export function extractLinkedInSlug(url) {
   return match ? match[1] : null
 }
 
+/** LinkedIn hostnames we are willing to make a server-side request to. */
+const LINKEDIN_HOSTS = new Set([
+  'linkedin.com', 'www.linkedin.com', 'in.linkedin.com', 'm.linkedin.com',
+])
+
+/**
+ * Resolve an applicant-supplied LinkedIn URL to a safe, canonical URL to fetch,
+ * or null if it is not genuinely a LinkedIn profile URL.
+ *
+ * SSRF fix: the previous code fetched the raw applicant string as long as
+ * `linkedin.com/in/<slug>` appeared ANYWHERE in it. That accepted
+ * `http://169.254.169.254/latest/meta-data/#linkedin.com/in/bob` (cloud
+ * instance metadata / IAM credentials), `http://localhost:5000/api/admin/...`
+ * (internal service access), and `https://evil.com/linkedin.com/in/bob`
+ * (arbitrary outbound request). Because a mentor application is unauthenticated,
+ * any visitor could drive those requests from inside the server's network.
+ *
+ * We now parse the URL and rebuild it from a trusted host plus the validated
+ * slug, so only `https://www.linkedin.com/in/<slug>` is ever requested.
+ */
+export function resolveLinkedInFetchUrl(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== 'string') return null
+  const trimmed = rawUrl.trim()
+  if (!trimmed) return null
+
+  let parsed
+  try {
+    parsed = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`)
+  } catch {
+    return null
+  }
+
+  // Only HTTPS, and only real LinkedIn hosts. This blocks http:, file:, gopher:,
+  // and any non-LinkedIn host including internal IPs and metadata endpoints.
+  if (parsed.protocol !== 'https:') return null
+  if (!LINKEDIN_HOSTS.has(parsed.hostname.toLowerCase())) return null
+
+  // The slug must come from the real path, not a query string or fragment.
+  const pathMatch = parsed.pathname.match(/^\/in\/([a-zA-Z0-9_-]+)\/?$/)
+  if (!pathMatch) return null
+
+  return `https://www.linkedin.com/in/${pathMatch[1]}`
+}
+
 /**
  * Parses public LinkedIn profile HTML for key meta tags & content.
  */
-export function parseLinkedInPublicHtml(html, applicantData = {}) {
+export function parseLinkedInPublicHtml(html, _applicantData = {}) {
   const $ = cheerio.load(html)
 
   const metaTitle = $('meta[property="og:title"]').attr('content') || $('title').text() || ''
@@ -130,9 +174,20 @@ export async function verifyLinkedInProfile(linkedinUrl, applicant = {}, options
   const slugName = slug.replace(/-[a-f0-9]{4,10}$/i, '').replace(/[-_]/g, ' ')
   const slugMatchScore = computeNameSimilarity(applicant.name || '', slugName)
 
+  // Rebuild a canonical LinkedIn URL. If the applicant's string does not
+  // resolve to a real linkedin.com/in/<slug> profile URL we never issue the
+  // request, and fall through to the slug-only heuristics below.
+  const targetUrl = resolveLinkedInFetchUrl(linkedinUrl)
+  if (!targetUrl) {
+    result.linkedin_name_match_score = slugMatchScore
+    result.verification_status = 'unverifiable'
+    result.verification_badge = 'unverified'
+    result.details.summary = 'URL did not resolve to a public linkedin.com/in/ profile address, so no profile fetch was attempted.'
+    return result
+  }
+
   try {
     const customFetch = options.fetchFn || fetch
-    const targetUrl = linkedinUrl.startsWith('http') ? linkedinUrl : `https://${linkedinUrl}`
 
     const response = await customFetch(targetUrl, {
       headers: {

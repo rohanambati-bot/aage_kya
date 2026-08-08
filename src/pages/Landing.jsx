@@ -152,9 +152,8 @@ function FeatureCard({ feature, index }) {
   return (
     <div
       ref={ref}
-      className={`glass-card p-8 group cursor-default flex flex-col gap-5 transition-all duration-500 ${feature.glow} ${
-        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-      }`}
+      className={`glass-card p-8 group cursor-default flex flex-col gap-5 transition-all duration-500 ${feature.glow} ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+        }`}
       style={{ transitionDelay: `${index * 100}ms` }}
     >
       {/* Icon + tag */}
@@ -212,21 +211,21 @@ export default function Landing() {
       {/* ── HERO ── */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
 
-        {/* Layered ambient background */}
+        {/* Layered 3D luminous ambient background */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           {/* Main mesh gradient */}
           <div className="absolute inset-0 bg-mesh opacity-80" />
-          {/* Big saffron orb top-right */}
-          <div className="absolute -top-40 -right-40 w-[700px] h-[700px] bg-saffron/10 rounded-full blur-[140px] animate-float-slow" />
-          {/* Subtle blue orb bottom-left */}
-          <div className="absolute -bottom-20 -left-20 w-[500px] h-[500px] bg-blue-600/8 rounded-full blur-[120px] animate-float" style={{ animationDelay: '2s' }} />
-          {/* Center glow */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-saffron/4 rounded-full blur-[100px]" />
+          {/* Sapphire orb top-right */}
+          <div className="absolute -top-40 -right-40 w-[700px] h-[700px] bg-blue-600/15 rounded-full blur-[140px] animate-float-slow" />
+          {/* Sunset Coral orb bottom-left */}
+          <div className="absolute -bottom-20 -left-20 w-[550px] h-[550px] bg-rose-500/12 rounded-full blur-[130px] animate-float" style={{ animationDelay: '2s' }} />
+          {/* Indigo center glow */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[450px] bg-indigo-600/10 rounded-full blur-[120px]" />
         </div>
 
         {/* Dot grid */}
         <div
-          className="absolute inset-0 opacity-[0.035]"
+          className="absolute inset-0 opacity-[0.04]"
           style={{
             backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)',
             backgroundSize: '28px 28px',
@@ -234,17 +233,17 @@ export default function Landing() {
         />
 
         {/* Top accent line */}
-        <div className="absolute top-16 left-0 right-0 h-px bg-gradient-to-r from-transparent via-saffron/30 to-transparent" />
+        <div className="absolute top-16 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-500/40 to-transparent" />
 
         <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
 
           {/* Live badge */}
-          <div className="inline-flex items-center gap-2.5 bg-saffron/10 border border-saffron/25 rounded-full px-5 py-2 mb-10 animate-fade-in">
+          <div className="inline-flex items-center gap-2.5 bg-sky-400/15 border border-sky-300/40 rounded-full px-5 py-2 mb-10 animate-fade-in shadow-xl shadow-sky-400/15 backdrop-blur-md">
             <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-saffron opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-saffron" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-300 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-sky-300" />
             </span>
-            <span className="text-saffron text-sm font-semibold tracking-wide">
+            <span className="text-sky-200 text-sm font-extrabold tracking-wide">
               Free for Class 10 &amp; 12 students &amp; graduates
             </span>
           </div>
@@ -265,12 +264,13 @@ export default function Landing() {
               >
                 <path
                   d="M0 3 Q25 0.5 50 3 Q75 5.5 100 3 Q125 0.5 150 3 Q175 5.5 200 3"
-                  stroke="url(#underlineGrad)" strokeWidth="2.5" strokeLinecap="round"
+                  stroke="url(#underlineGrad)" strokeWidth="3" strokeLinecap="round"
                 />
                 <defs>
                   <linearGradient id="underlineGrad" x1="0" y1="0" x2="200" y2="0" gradientUnits="userSpaceOnUse">
-                    <stop offset="0%" stopColor="#FF6B00" />
-                    <stop offset="100%" stopColor="#FF8C33" />
+                    <stop offset="0%" stopColor="#2563EB" />
+                    <stop offset="50%" stopColor="#6366F1" />
+                    <stop offset="100%" stopColor="#F43F5E" />
                   </linearGradient>
                 </defs>
               </svg>
@@ -287,33 +287,26 @@ export default function Landing() {
             Zero coaching pitches. Zero sponsored rankings. Pure clarity.
           </p>
 
-          {/* CTA group */}
+          {/* CTA group with comfortable choice buttons */}
           <div
             className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14 animate-slide-up"
             style={{ animationDelay: '200ms' }}
           >
             <Link
-              to="/class10/onboarding"
-              id="hero-cta-10"
-              onClick={() => postAnalyticsEvent('hero_cta_10th_clicked', { source: 'landing_hero' })}
-              className="btn-primary text-sm sm:text-base px-8 py-3.5 font-semibold tracking-wide flex items-center gap-2 hover:scale-[1.02] transition-transform"
+              to="/explore"
+              id="hero-cta-explore"
+              onClick={() => postAnalyticsEvent('hero_cta_explore_clicked', { source: 'landing_hero' })}
+              className="btn-primary text-sm sm:text-base px-8 py-4 font-black tracking-wide flex items-center gap-2 hover:scale-[1.03] transition-transform shadow-xl shadow-blue-600/30"
             >
-              <span>10th Grade Stream Finder</span>
+              <span>🎯 Multiple-Choice Quiz (Explore Paths)</span>
             </Link>
             <Link
-              to="/class12/onboarding"
-              id="hero-cta-12"
-              onClick={() => postAnalyticsEvent('hero_cta_12th_clicked', { source: 'landing_hero' })}
-              className="btn-primary text-sm sm:text-base px-8 py-3.5 font-semibold tracking-wide flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 border-purple-500/30 hover:from-purple-500 hover:to-indigo-500 shadow-purple-500/20 hover:scale-[1.02] transition-transform"
+              to="/onboarding"
+              id="hero-cta-onboard"
+              onClick={() => postAnalyticsEvent('hero_cta_onboard_clicked', { source: 'landing_hero' })}
+              className="btn-primary text-sm sm:text-base px-8 py-4 font-black tracking-wide flex items-center gap-2 bg-gradient-to-r from-rose-600 via-pink-600 to-amber-500 border-rose-400/30 hover:from-rose-500 hover:to-amber-400 shadow-xl shadow-rose-600/30 hover:scale-[1.03] transition-transform"
             >
-              <span>12th Grade Career Planner</span>
-            </Link>
-            <Link
-              to="/mentors"
-              onClick={() => postAnalyticsEvent('hero_cta_mentor_clicked', { source: 'landing_hero' })}
-              className="btn-outline text-sm sm:text-base px-8 py-3.5 font-semibold hover:scale-[1.02] transition-transform"
-            >
-              Find a Mentor
+              <span>✍️ Express In Own Words (Get Started)</span>
             </Link>
           </div>
 
@@ -596,11 +589,10 @@ export default function Landing() {
                 <button
                   key={i}
                   onClick={() => setActiveTestimonial(i)}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    i === activeTestimonial
+                  className={`h-1.5 rounded-full transition-all duration-300 ${i === activeTestimonial
                       ? 'bg-saffron w-6'
                       : 'bg-white/20 w-1.5 hover:bg-white/40'
-                  }`}
+                    }`}
                   aria-label={`View testimonial ${i + 1}`}
                 />
               ))}
@@ -657,43 +649,23 @@ export default function Landing() {
 
 export function ChatFloatingButton() {
   const [visible, setVisible] = useState(false)
-  const [dismissed, setDismissed] = useState(false)
 
   useEffect(() => {
-    // Show only if user hasn't done onboarding yet
     const hasFormData = Boolean(localStorage.getItem('aageKyaFormData'))
-    if (!hasFormData && !dismissed) setVisible(true)
-  }, [dismissed])
+    if (!hasFormData) setVisible(true)
+  }, [])
 
-  if (!visible || dismissed) return null
+  if (!visible) return null
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 animate-slide-up">
-      <div className="relative">
-        {/* Dismiss button */}
-        <button
-          onClick={() => setDismissed(true)}
-          className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-navy-800 border border-white/20 text-gray-500 hover:text-white flex items-center justify-center text-xs transition-colors z-10"
-          aria-label="Dismiss"
-        >
-          ✕
-        </button>
-        {/* Main button */}
-        <Link
-          to="/chat"
-          className="flex items-center gap-3 bg-navy-900 border border-indigo-500/30 hover:border-indigo-500/60 rounded-2xl px-4 py-3 shadow-2xl shadow-indigo-500/20 transition-all hover:shadow-indigo-500/30 group"
-        >
-          <div className="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-lg flex-shrink-0 group-hover:scale-110 transition-transform">
-            🤖
-          </div>
-          <div>
-            <p className="text-white text-xs font-bold leading-tight">Have a quick question?</p>
-            <p className="text-indigo-400 text-[10px] mt-0.5">Ask me anything about courses →</p>
-          </div>
-        </Link>
-        {/* Pulse ring */}
-        <div className="absolute -inset-1 rounded-2xl bg-indigo-500/10 animate-pulse -z-10" />
-      </div>
+    <div className="fixed bottom-24 right-6 z-40 animate-slide-up">
+      <Link
+        to="/chat"
+        className="flex items-center gap-2 bg-[#141D33]/95 hover:bg-[#1A2642] border border-sky-400/30 rounded-full px-4 py-2.5 shadow-2xl transition-all duration-200 hover:scale-105 group"
+      >
+        <span className="text-base group-hover:scale-110 transition-transform">🤖</span>
+        <span className="text-white text-xs font-extrabold font-sans">Ask AI</span>
+      </Link>
     </div>
   )
 }

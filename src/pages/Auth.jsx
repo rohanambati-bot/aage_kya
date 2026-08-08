@@ -8,7 +8,7 @@ export default function Auth() {
   const [searchParams] = useSearchParams()
   const returnTo = searchParams.get('returnTo') || '/dashboard'
 
-  const { loginAsDemo } = useAuth()
+  const { loginAsDemo, continueAsGuest } = useAuth()
   const [tab, setTab]           = useState('password')   // 'password' | 'magic'
   const [mode, setMode]         = useState('signin')     // 'signin' | 'signup'
   const [email, setEmail]       = useState('')
@@ -20,9 +20,11 @@ export default function Auth() {
   const [success, setSuccess]   = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
 
-  const handleDemoLogin = (role) => {
-    loginAsDemo(role, email || `demo-${role}@aagekya.com`, 'class12')
-    if (role === 'mentor') {
+  const handleDemoLogin = (role, classLevel = 'class12') => {
+    loginAsDemo(role, email || `demo-${role}@aagekya.com`, classLevel)
+    if (role === 'admin') {
+      navigate('/admin-dashboard')
+    } else if (role === 'mentor') {
       navigate('/mentor-dashboard')
     } else {
       navigate(returnTo)
@@ -109,7 +111,7 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen pt-24 pb-16 flex items-center justify-center px-4 bg-navy relative overflow-hidden">
+    <div className="min-h-screen pt-24 pb-16 flex items-center justify-center px-4 bg-navy relative overflow-hidden font-sans">
       {/* Dynamic ambient blur background */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-saffron/10 rounded-full blur-[140px] animate-float-slow" />
@@ -285,6 +287,63 @@ export default function Auth() {
                 <Link to="/admin-login" className="text-[11px] text-gray-500 hover:text-gray-300 transition-colors">
                   🛡️ Admin Portal Login →
                 </Link>
+              </div>
+
+              {/* Always-Visible Demo Sandbox Bypass Section for Judges */}
+              <div className="mt-6 pt-5 border-t border-white/10">
+                <div className="relative mb-4 flex items-center justify-center">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-saffron/20" />
+                  </div>
+                  <span className="relative z-10 px-3 bg-[#0d1424] text-[10px] font-bold text-saffron uppercase tracking-wider rounded-full border border-saffron/30 py-0.5">
+                    ⚡ Instant Demo Sandbox (1-Click Judge Access)
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await continueAsGuest()
+                      navigate(returnTo)
+                    }}
+                    className="w-full py-2.5 rounded-xl border border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:scale-[1.01]"
+                  >
+                    🚀 Continue as Guest (No Login Required)
+                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleDemoLogin('student', 'class10')}
+                      className="py-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-1 hover:scale-[1.01]"
+                    >
+                      ⚡ Student (10th)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDemoLogin('student', 'class12')}
+                      className="py-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-1 hover:scale-[1.01]"
+                    >
+                      ⚡ Student (12th)
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleDemoLogin('mentor')}
+                      className="py-2.5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-1 hover:scale-[1.01]"
+                    >
+                      ⚡ Mentor Demo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDemoLogin('admin')}
+                      className="py-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs font-semibold transition-all duration-200 flex items-center justify-center gap-1 hover:scale-[1.01]"
+                    >
+                      🛡️ Admin Demo
+                    </button>
+                  </div>
+                </div>
               </div>
             </>
           )}

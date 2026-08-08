@@ -4,7 +4,9 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { setupSecurityMiddlewares } from './middleware/security.js'
 import { errorHandler } from './middleware/errorHandler.js'
+import { requestLogger } from './middleware/requestLogger.js'
 import { isSupabaseConfigured, supabase } from './utils/db.js'
+import { readEnvironment, assertValidEnvironment } from './config/env.js'
 
 // Import route controllers
 import authRoutes from './routes/auth.js'
@@ -23,9 +25,21 @@ import mentorSessionsRoutes from './routes/mentorSessions.js'
 import qaRoutes from './routes/qa.js'
 import notificationsRoutes from './routes/notifications.js'
 import quizRoutes from './routes/quiz.js'
+import scholarshipMatchRoutes from './routes/scholarshipMatch.js'
 
 // Load env vars if missing
 dotenv.config()
+
+// Validate configuration before wiring anything up. server/config/env.js
+// already encoded these rules (HTTPS-only origins, service-role key required in
+// production, no placeholder credentials) but was never called, so the module
+// was dead code and a misconfigured production deploy started up silently in a
+// degraded, less-secure state. Fail fast instead.
+const envConfig = readEnvironment(process.env)
+for (const warning of envConfig.warnings) {
+  console.warn(`[config] ${warning}`)
+}
+assertValidEnvironment(envConfig)
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -34,6 +48,7 @@ const app = express()
 
 // Setup Security Middlewares (Helmet, CORS, Rate Limiters, XSS, Tracing, Logging)
 setupSecurityMiddlewares(app)
+app.use(requestLogger)
 
 // Basic health check (Keep this one in index for load balancers)
 app.get('/api/health', (req, res) => {
@@ -49,7 +64,11 @@ app.get('/api/ai-status', (req, res) => {
 // Mount API Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/admin', adminRoutes)
-app.use('/api/mentors', mentorsRoutes) // Note: mentorsRoutes handles /api/mentors, /api/mentors/apply etc, but since it already has the full paths, we just mount at /
+// mentorsRoutes declares absolute paths (/api/mentors, /api/mentors/apply, …)
+// so it is mounted ONCE at the root. It was previously ALSO mounted at
+// /api/mentors, which created shadow routes (e.g. /api/mentors/api/mentors/ask)
+// that bypassed nothing but doubled the attack surface and made rate-limit keys
+// (derived from baseUrl+path) inconsistent between the two aliases.
 app.use('/', mentorsRoutes)
 app.use('/', guidanceRoutes)
 app.use('/', collegesRoutes)
@@ -64,6 +83,7 @@ app.use('/', mentorSessionsRoutes)
 app.use('/', qaRoutes)
 app.use('/', notificationsRoutes)
 app.use('/', quizRoutes)
+app.use('/', scholarshipMatchRoutes)
 
 // Setup static file serving for React frontend
 const distPath = path.join(__dirname, '../dist')

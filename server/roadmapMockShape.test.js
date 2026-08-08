@@ -6,9 +6,11 @@
  * GUIDANCE-shaped mock data ({ summary, options, ... }), which wrote nulls into
  * the roadmaps table and shipped wrong-shaped JSON to the frontend.
  *
- * server/index.js is a monolith that calls app.listen() at import time, so we
- * cannot import it here. Instead we extract getMockRoadmap's real source from
- * the file and evaluate it in isolation, and assert the route wires it up.
+ * `getMockRoadmap` used to be declared INSIDE the /api/roadmap handler (so it
+ * had to be string-extracted from the source here). That nesting was also a
+ * live bug: the route referenced it before the declaration was reachable. It
+ * now lives in `utils/guidancePrompts.js` and is imported directly, so this
+ * test exercises the real exported function.
  */
 
 import test from 'node:test'
@@ -16,28 +18,10 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { getMockRoadmap } from './utils/guidancePrompts.js'
 
-const indexPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'routes', 'guidance.js')
-const source = readFileSync(indexPath, 'utf8')
-
-/** Pull a top-level `function name(...) { ... }` out of the source by brace matching. */
-function extractFunction(src, name) {
-  const signature = `function ${name}(`
-  const start = src.indexOf(signature)
-  assert.notEqual(start, -1, `${name} not found in index.js`)
-  const bodyStart = src.indexOf('{', start)
-  let depth = 0
-  for (let i = bodyStart; i < src.length; i++) {
-    if (src[i] === '{') depth++
-    else if (src[i] === '}') {
-      depth--
-      if (depth === 0) return src.slice(start, i + 1)
-    }
-  }
-  throw new Error(`Unbalanced braces while extracting ${name}`)
-}
-
-const getMockRoadmap = new Function(`${extractFunction(source, 'getMockRoadmap')}; return getMockRoadmap`)()
+const routePath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'routes', 'guidance.js')
+const source = readFileSync(routePath, 'utf8')
 
 test('getMockRoadmap returns roadmap-shaped data, not guidance-shaped', () => {
   const mock = getMockRoadmap({ marks: '91' }, { path: 'Data Analyst' })

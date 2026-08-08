@@ -4,13 +4,10 @@ import { requireAuth } from '../middleware/auth.js'
 
 const router = express.Router()
 
-router.put('/api/wallet', async (req, res) => {
+router.put('/api/wallet', requireAuth(), async (req, res) => {
   try {
     const authHeader = req.headers.authorization
-    const user = await getAuthUser(authHeader)
-    if (!user) {
-      return res.status(401).json({ error: 'UNAUTHORIZED', message: 'Auth token is invalid or missing' })
-    }
+    const user = req.authUser
 
     const { wallet } = req.body
     if (!Array.isArray(wallet)) {
@@ -29,7 +26,7 @@ router.put('/api/wallet', async (req, res) => {
     res.json({ success: true, wallet: data[0]?.academic_wallet || [] })
   } catch (err) {
     console.error('Wallet API Error:', err.message)
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 

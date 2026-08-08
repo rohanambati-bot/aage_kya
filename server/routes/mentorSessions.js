@@ -1,7 +1,8 @@
 import express from 'express'
-import { getSupabaseClient } from '../utils/db.js'
+import { getSupabaseClient, supabase } from '../utils/db.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { createRateLimiter } from '../middleware/rateLimiter.js'
+import { sendEmail } from '../utils/email.js'
 const sessionCreateLimiter = createRateLimiter(20, 3600000, 'Session limit.')
 
 const router = express.Router()
@@ -18,16 +19,17 @@ router.post('/api/mentor-sessions', requireAuth(), sessionCreateLimiter, async (
       .select()
       .single()
     if (error) throw error
-    // Send confirmation email (fire-and-forget)
-    const { data: profile } = await supabase.auth.admin?.getUserById?.(user.id).catch(() => ({ data: null })) || {}
-    sendEmail(
-      user.email,
-      'Mentor Session Requested — Aage Kya?',
-      `<p>Hi there! Your mentor session request has been submitted. Your mentor will confirm shortly.</p>`
-    )
+    // Send confirmation email (fire-and-forget; never blocks the booking).
+    if (user.email) {
+      sendEmail(
+        user.email,
+        'Mentor Session Requested — Aage Kya?',
+        `<p>Hi there! Your mentor session request has been submitted. Your mentor will confirm shortly.</p>`
+      ).catch(() => {})
+    }
     res.json({ session: data })
   } catch (err) {
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -37,7 +39,6 @@ router.get('/api/mentor-sessions', requireAuth(), async (req, res) => {
   const client = getSupabaseClient(req.headers.authorization)
   try {
     // Students see their own; mentors see sessions for their profile
-    let query
     if (user.role === 'mentor') {
       // Find mentor record by user_id
       const { data: mentorRow } = await supabase.from('mentors').select('id').eq('user_id', user.id).maybeSingle()
@@ -51,7 +52,7 @@ router.get('/api/mentor-sessions', requireAuth(), async (req, res) => {
       return res.json({ sessions: data || [] })
     }
   } catch (err) {
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -71,7 +72,7 @@ router.patch('/api/mentor-sessions/:id/rate', requireAuth(), async (req, res) =>
     if (error) throw error
     res.json({ session: data })
   } catch (err) {
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -94,7 +95,7 @@ router.patch('/api/mentor-sessions/:id/notes', requireRole('mentor'), async (req
     if (error) throw error
     res.json({ session: data })
   } catch (err) {
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 

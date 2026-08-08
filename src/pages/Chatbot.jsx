@@ -89,7 +89,7 @@ function TypingIndicator() {
 // ─── Main Chatbot page ────────────────────────────────────────────────────────
 
 export default function Chatbot() {
-  const { profile } = useAuth()
+  const { profile, session } = useAuth()
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
@@ -158,7 +158,7 @@ export default function Chatbot() {
     setMessages(prev => [...prev, { role: 'assistant', content: '', handoff: false }])
 
     try {
-      const reader = await streamChat(userText, profile?.id, profile)
+      const reader = await streamChat(userText, profile, session?.access_token)
       const decoder = new TextDecoder()
       let streamContent = ''
 

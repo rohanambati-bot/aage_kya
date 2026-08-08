@@ -259,13 +259,21 @@ export async function getQuizQuestions() {
 /**
  * Stream AI Chat guidance via SSE (POST /api/chat/stream)
  * Returns ReadableStream reader for token-by-token rendering.
+ *
+ * The stored profile is resolved server-side from the bearer token — we no
+ * longer send a client-chosen `profileId` (the server ignores it, since
+ * trusting it was an IDOR: any caller could read another student's profile).
+ * `formData` still carries the in-progress, not-yet-saved onboarding answers.
  */
-export async function streamChat(question, profileId, formData) {
+export async function streamChat(question, formData, authToken) {
   const url = `${BASE_URL}/api/chat/stream`
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question, profileId, formData }),
+    headers: {
+      'Content-Type': 'application/json',
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+    },
+    body: JSON.stringify({ question, formData }),
   })
   if (!res.ok) {
     throw new Error(`HTTP error ${res.status}`)

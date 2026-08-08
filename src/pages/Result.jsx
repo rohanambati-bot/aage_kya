@@ -10,6 +10,8 @@ import CollegeDetailCard from '../components/CollegeDetailCard'
 import RankPredictor from '../components/RankPredictor'
 import MatchBreakdownChart from '../components/charts/MatchBreakdownChart'
 import GeographicSpreadChart from '../components/charts/GeographicSpreadChart'
+import WhatIfSimulator from '../components/WhatIfSimulator'
+import CollegeCompareModal from '../components/CollegeCompareModal'
 import { computeMatch } from '../utils/matchEngine'
 import { getMentors, postGuidance, postScenario, postSync } from '../api'
 
@@ -250,6 +252,14 @@ function OptionCard({ option, index, formData, collegesData }) {
   const visibleColleges = showAllColleges ? allColleges : allColleges.slice(0, 3)
   const hiddenCount = allColleges.length - visibleColleges.length
 
+  // Bucket classification styling (Ambitious / Target / Safe)
+  const bucket = (option.bucket || (index === 0 ? 'target' : index === 1 ? 'ambitious' : 'safe')).toLowerCase()
+  const bucketStyle = {
+    ambitious: { bg: 'bg-rose-500/10 text-rose-300 border-rose-500/30', icon: '🔴', label: 'Ambitious Reach' },
+    target: { bg: 'bg-amber-500/10 text-amber-300 border-amber-500/30', icon: '🟡', label: 'Target Fit' },
+    safe: { bg: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30', icon: '🟢', label: 'Safe Option' },
+  }[bucket] || { bg: 'bg-blue-500/10 text-blue-300 border-blue-500/30', icon: '🎯', label: 'Match' }
+
   return (
     <motion.div
       variants={cardRevealVariant}
@@ -257,14 +267,23 @@ function OptionCard({ option, index, formData, collegesData }) {
       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
       className={`glass-card p-6 sm:p-8 flex flex-col gap-5 ${colorMap[index] || 'border-white/15'}`}
     >
-      {/* Header */}
+      {/* Header with Bucket Pill */}
       <div className="flex items-start gap-4">
         <div className={`w-10 h-10 rounded-xl ${bgMap[index]} flex items-center justify-center font-display font-bold text-lg ${accentMap[index]} border border-current/20 flex-shrink-0`}>
           {index + 1}
         </div>
         <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${bucketStyle.bg}`}>
+              {bucketStyle.icon} {bucketStyle.label}
+            </span>
+            {option.evidence_grounded && (
+              <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full" title="Sourced from verified institution data">
+                ✓ Verified Evidence
+              </span>
+            )}
+          </div>
           <h3 className="font-display font-bold text-xl text-white leading-tight">{option.path}</h3>
-          <p className={`text-xs font-semibold mt-1 ${accentMap[index]}`}>Option {index + 1}</p>
         </div>
         {/* Explore Course Button */}
         <button
@@ -424,15 +443,14 @@ function OptionCard({ option, index, formData, collegesData }) {
 }
 
 function ScholarshipBox({ scholarship, scholarshipData }) {
-  // Prefer the verified DB application URL. When it's missing, fall back to an
-  // official-search link (National Scholarship Portal for govt schemes, else a
-  // targeted Google search on the exact scheme name) so the button always works.
-  const rawUrl = scholarshipData?.application_url
-  const deadline = scholarshipData?.deadline_pattern
+  const rawUrl = scholarshipData?.application_url || scholarshipData?.official_url
+  const deadline = scholarshipData?.application_deadline || scholarshipData?.deadline_pattern
   const isValidUrl = typeof rawUrl === 'string' && /^https?:\/\//i.test(rawUrl)
   const applyUrl = isValidUrl
     ? rawUrl
     : `https://www.google.com/search?q=${encodeURIComponent((scholarship || 'scholarship') + ' official application apply India')}`
+
+  const isVerified = scholarshipData?.verification_status === 'verified' || scholarshipData?.verified
 
   return (
     <div
@@ -443,11 +461,39 @@ function ScholarshipBox({ scholarship, scholarshipData }) {
         🎓
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-emerald-400 text-xs font-bold uppercase tracking-widest mb-2">Scholarship to Check This Week</p>
+        <div className="flex flex-wrap items-center gap-2 mb-1">
+          <span className="text-emerald-400 text-xs font-bold uppercase tracking-widest">Scholarship Match</span>
+          {isVerified && (
+            <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-extrabold">
+              ✓ DB Verified
+            </span>
+          )}
+        </div>
         <p className="text-white text-base leading-relaxed font-medium">{scholarship}</p>
+
+        {/* Amount & Requirements tags */}
+        <div className="flex flex-wrap gap-2 mt-2">
+          {scholarshipData?.award_amount_max && (
+            <span className="text-[11px] bg-emerald-500/10 text-emerald-300 px-2.5 py-0.5 rounded-md border border-emerald-500/20 font-semibold">
+              Up to ₹{scholarshipData.award_amount_max.toLocaleString('en-IN')}/yr
+            </span>
+          )}
+          {scholarshipData?.income_limit_lakh && (
+            <span className="text-[11px] bg-white/5 text-gray-300 px-2.5 py-0.5 rounded-md border border-white/10">
+              Income &lt; ₹{scholarshipData.income_limit_lakh}L/yr
+            </span>
+          )}
+          {scholarshipData?.marks_requirement && (
+            <span className="text-[11px] bg-white/5 text-gray-300 px-2.5 py-0.5 rounded-md border border-white/10">
+              Min {scholarshipData.marks_requirement}% marks
+            </span>
+          )}
+        </div>
+
         {deadline && (
-          <p className="text-gray-500 text-xs mt-1">⏰ Deadline: {deadline}</p>
+          <p className="text-gray-400 text-xs mt-2.5">⏰ Deadline: {deadline}</p>
         )}
+
         <a
           href={applyUrl}
           target="_blank"
@@ -610,6 +656,8 @@ export default function Result() {
   const [matchedMentor, setMatchedMentor] = useState(null)
   const [scenarioSaved, setScenarioSaved] = useState(false)
   const [scenarioSaving, setScenarioSaving] = useState(false)
+  const [compareModalOpen, setCompareModalOpen] = useState(false)
+  const [selectedCompareColleges, setSelectedCompareColleges] = useState([])
 
   // Track auth state to know if we should show the save banner
   useEffect(() => {
@@ -816,6 +864,14 @@ export default function Result() {
               )}
             </div>
 
+            {/* Interactive Decision Simulator (What-If Analysis) */}
+            <WhatIfSimulator
+              initialProfile={formData}
+              onRecalculate={(newProfile) => {
+                fetchGuidance({ ...formData, ...newProfile })
+              }}
+            />
+
             {/* AI Explainability Agent Trace */}
             {result.explainability && (
               <div className="glass-card p-5 border-saffron/20 bg-saffron/5 rounded-2xl">
@@ -922,6 +978,28 @@ export default function Result() {
               animate="show"
               className="space-y-6"
             >
+              <div className="flex flex-wrap justify-between items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-4">
+                <div>
+                  <h3 className="text-base font-black text-white">Recommended Options &amp; Verified Colleges</h3>
+                  <p className="text-slate-400 text-xs mt-0.5">Bucket classified into Ambitious, Target &amp; Safe options</p>
+                </div>
+                <button
+                  onClick={() => {
+                    const compareList = (result.options || []).map(o => ({
+                      name: o.path,
+                      approx_annual_fee: o.approx_annual_fee,
+                      bucket: o.bucket || 'target',
+                      college_type: 'Central / State / Private',
+                      entrance_exam: o.exams?.[0] || 'Merit / JEE'
+                    }))
+                    setSelectedCompareColleges(compareList)
+                    setCompareModalOpen(true)
+                  }}
+                  className="btn-outline text-xs py-2 px-4 rounded-xl flex items-center gap-1.5 shadow-md hover:scale-105 transition-transform"
+                >
+                  📊 Compare Options Side-by-Side
+                </button>
+              </div>
               {(result.options || []).map((opt, i) => (
                 <motion.div key={i} variants={cardRevealVariant} className="space-y-2">
                   <OptionCard option={opt} index={i} formData={formData} collegesData={result.colleges_data} />
@@ -1028,6 +1106,13 @@ export default function Result() {
             </div>
           </div>
         )}
+
+        {/* Side-by-Side Comparison Modal */}
+        <CollegeCompareModal
+          isOpen={compareModalOpen}
+          onClose={() => setCompareModalOpen(false)}
+          colleges={selectedCompareColleges}
+        />
       </div>
     </main>
   )

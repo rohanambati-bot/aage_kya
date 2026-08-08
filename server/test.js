@@ -143,8 +143,8 @@ describe('Aage Kya? API Integration Tests', () => {
     const data = await res.json()
     assert.ok(Array.isArray(data))
     assert.ok(data.length > 0)
-    assert.ok(data[0].hasOwnProperty('name'))
-    assert.ok(data[0].hasOwnProperty('linkedin'))
+    assert.ok(Object.prototype.hasOwnProperty.call(data[0], 'name'))
+    assert.ok(Object.prototype.hasOwnProperty.call(data[0], 'linkedin'))
   })
 
   // 3. Mentors apply endpoint validation
@@ -221,13 +221,15 @@ describe('Aage Kya? API Integration Tests', () => {
     assert.strictEqual(res.status, 400)
   })
 
-  // 7. Transcribe validation
-  test('POST /api/transcribe should return 400 when missing audio data', async () => {
+  // 7. Transcribe now requires authentication before body validation, because
+  // it spends paid third-party transcription credits. An anonymous caller must
+  // be rejected with 401 rather than reaching the validation branch.
+  test('POST /api/transcribe should return 401 when unauthenticated', async () => {
     const res = await fetch(`${BASE_URL}/api/transcribe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({})
     })
-    assert.strictEqual(res.status, 400)
+    assert.strictEqual(res.status, 401)
   })
 })

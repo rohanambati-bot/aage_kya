@@ -64,7 +64,7 @@ router.post('/api/sync', async (req, res) => {
     res.json({ success: true })
   } catch (err) {
     console.error('Sync API Error:', err.message)
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -171,7 +171,7 @@ router.post('/api/re-onboard', async (req, res) => {
     res.json({ success: true })
   } catch (err) {
     console.error('Re-onboard API Error:', err.message)
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -192,7 +192,7 @@ router.get('/api/student/bookings', requireAuth(), async (req, res) => {
     res.json({ bookings: data || [] })
   } catch (err) {
     console.error('Fetch student bookings error:', err.message)
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 

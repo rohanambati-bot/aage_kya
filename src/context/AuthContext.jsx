@@ -68,32 +68,30 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function fetchProfile(userId, sessionUser) {
-    const ADMIN_EMAILS = ['admin@aagekya.com', 'admin@gmail.com', 'demo-admin@aagekya.com']
     const userEmail = (sessionUser?.email || '').toLowerCase()
 
+    // The role is read from the server-controlled `students.role` column ONLY.
+    //
+    // It is deliberately NOT derived from `user_metadata.user_type` or from a
+    // client-side email whitelist: `user_metadata` is written by the browser at
+    // sign-up (`supabase.auth.signUp({ options: { data: { user_type } } })`),
+    // so trusting it let any self-registering user mint an admin session. This
+    // value is presentation-only; every privileged action is re-authorized
+    // server-side in `server/middleware/auth.js`.
     let { data } = await supabase
       .from('students')
       .select('*')
       .eq('id', userId)
       .maybeSingle()
 
-    let targetRole = 'student'
-    if (ADMIN_EMAILS.includes(userEmail) || userEmail.endsWith('@admin.aagekya.com')) {
-      targetRole = 'admin'
-    } else if (data?.role) {
-      targetRole = data.role
-    } else if (sessionUser?.user_metadata?.user_type === 'admin') {
-      targetRole = 'admin'
-    } else if (sessionUser?.user_metadata?.user_type === 'mentor') {
-      targetRole = 'mentor'
-    }
-
     if (!data && sessionUser) {
+      // New identities are always created as plain students. Elevation to
+      // mentor/admin happens only through the server's service-role workflow.
       let { data: insertedData } = await supabase
         .from('students')
         .insert({
           id: userId,
-          role: targetRole,
+          role: 'student',
           class_level: 'class12',
           full_name: userEmail.split('@')[0] || '',
         })
@@ -101,13 +99,9 @@ export function AuthProvider({ children }) {
         .maybeSingle()
 
       if (insertedData) data = insertedData
-    } else if (data && data.role !== targetRole) {
-      // Sync DB role if elevated to admin/mentor
-      await supabase.from('students').update({ role: targetRole }).eq('id', userId)
-      data.role = targetRole
     }
 
-    setProfile(data || { id: userId, role: targetRole, full_name: userEmail.split('@')[0] || '' })
+    setProfile(data || { id: userId, role: 'student', full_name: userEmail.split('@')[0] || '' })
   }
 
   async function signOut() {

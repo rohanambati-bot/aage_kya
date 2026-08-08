@@ -154,18 +154,7 @@ router.get('/api/predictor/simulate', (req, res) => {
 //  PATHWAY ADVISOR — adaptive questionnaire + anti-hallucination recommender
 //  Powers the "I don't know what to pick" discovery flow (all-India, all domains)
 // ═══════════════════════════════════════════════════════════════════════════
-
-// Resolve + validate a classLevel value, warning (not throwing) when it's
-// missing or invalid so callers still get a sensible default response.
-function resolveClassLevel(classLevel, routeLabel) {
-  if (classLevel === 'class10' || classLevel === 'class12') return classLevel
-  if (!classLevel) {
-    console.warn(`[PathwayAdvisor] ${routeLabel} called with no classLevel param — defaulting to class12. This should be treated as a bug in the caller, not silently accepted long-term.`)
-  } else {
-    console.warn(`[PathwayAdvisor] ${routeLabel} called with invalid classLevel="${classLevel}" — defaulting to class12.`)
-  }
-  return 'class12'
-}
-
+// (classLevel resolution for the pathway flow lives in data/indiaPathways.js
+// and routes/guidance.js; this router only serves the cutoff predictor.)
 
 export default router

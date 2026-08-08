@@ -1,12 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 import {
-  normalizeStream, streamsMatch, detectStreamExamMismatch,
+  normalizeStream, detectStreamExamMismatch,
   detectExamsInText, textNamesExam, pathOnExamTrack, EXAM_VOCABULARY,
   escapeRegExp,
 } from '../config/streams.js'
 import { findPathwayById } from '../data/indiaPathways.js'
 import { enforceGuidanceEvidence } from '../domain/verification/verifyEvidence.js'
-import { callLLM, isAiAvailable, getAiStatus } from '../ai/llmClient.js'
+import { callLLM, getAiStatus } from '../ai/llmClient.js'
 import { computeMatch } from '../engine/localMatchEngine.js'
 
 // Helper to check environment configuration

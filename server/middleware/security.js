@@ -17,16 +17,37 @@ const sanitizeObject = (obj) => {
 }
 
 export function setupSecurityMiddlewares(app) {
+  const isProduction = process.env.NODE_ENV === 'production'
+
+  // Behind Render/Railway/Vercel the app sits behind a reverse proxy. Without
+  // this, req.ip is the proxy's address for every request, so all callers share
+  // one rate-limit bucket: one heavy user locks out everyone, and an attacker
+  // is never individually throttled. Trust one hop only — trusting all hops
+  // would let a client forge X-Forwarded-For and evade limits entirely.
+  app.set('trust proxy', 1)
+
   // CORS — allow origins from ALLOWED_ORIGINS env var (comma-separated)
   const allowedOrigins = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+    ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim().replace(/\/$/, '')).filter(Boolean)
     : null
+
+  // `origin: true` reflects ANY requesting origin and, combined with
+  // credentials: true, lets any website read authenticated responses. It is
+  // only tolerable for local development, and must never be the production
+  // default (which is what happened whenever ALLOWED_ORIGINS was unset).
+  if (isProduction && (!allowedOrigins || allowedOrigins.length === 0)) {
+    throw new Error('ALLOWED_ORIGINS must be set in production: refusing to start with a permissive CORS policy.')
+  }
 
   app.use(cors({
     origin: allowedOrigins
       ? (origin, cb) => {
-          if (!origin || allowedOrigins.includes(origin)) return cb(null, true)
-          cb(new Error(`CORS: origin ${origin} not allowed`))
+          // Same-origin/non-browser requests send no Origin header.
+          if (!origin) return cb(null, true)
+          if (allowedOrigins.includes(origin.replace(/\/$/, ''))) return cb(null, true)
+          // Reject without throwing: a thrown error hits the global error
+          // handler and surfaces as a confusing 500 instead of a CORS failure.
+          return cb(null, false)
         }
       : true,
     credentials: true,

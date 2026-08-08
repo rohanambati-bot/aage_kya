@@ -195,8 +195,8 @@ export default function SearchBar({ isCompact = false }) {
                       >
                         <span className="text-xl flex-shrink-0">{item.icon}</span>
                         <div className="flex-1 min-w-0">
-                          <div className="text-white text-sm font-medium truncate">{item.title}</div>
-                          <div className="text-gray-500 text-xs truncate">{item.desc}</div>
+                          <div className="text-white text-sm font-semibold truncate">{item.title}</div>
+                          <div className="text-slate-400 text-xs truncate mt-0.5">{item.desc}</div>
                         </div>
                         <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${TYPE_COLORS[item.type]}`}>
                           {item.type}

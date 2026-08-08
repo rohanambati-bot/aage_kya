@@ -125,11 +125,11 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <div className="min-h-screen bg-navy flex flex-col">
+        <div className="min-h-screen bg-navy flex flex-col pb-28">
           <ScrollToTop />
-          <Navbar />
           <AnimatedRoutes />
           <Footer />
+          <Navbar />
           <ChatFloatingButton />
         </div>
       </BrowserRouter>
