@@ -91,7 +91,18 @@ app.use(express.static(distPath))
 
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next()
-  res.sendFile(path.join(distPath, 'index.html'))
+  res.sendFile(path.join(distPath, 'index.html'), (err) => {
+    if (err) {
+      if (err.code === 'ENOENT') {
+        res.status(404).json({
+          error: 'NOT_FOUND',
+          message: 'Frontend bundle not found. Ensure "npm run build" runs during deployment build step.',
+        })
+      } else {
+        next(err)
+      }
+    }
+  })
 })
 
 // Global Error Handler
