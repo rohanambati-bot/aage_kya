@@ -44,10 +44,10 @@ export default function AskMentorModal({ mentor, onClose }) {
         {
           mentorId: mentor.id,
           contactName: form.name,
-          contactEmail: form.email,
-          classLevel: form.classLevel,
-          subject: form.subject,
-          category: form.category,
+          contactEmail: form.email || 'not-provided@student.aagekya.in',
+          classLevel: form.classLevel || 'class12',
+          subject: form.subject || form.question.slice(0, 60),
+          category: form.category || 'General',
           question: form.question,
         },
         session?.access_token

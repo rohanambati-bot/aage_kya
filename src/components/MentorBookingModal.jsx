@@ -49,18 +49,19 @@ export default function MentorBookingModal({ mentor, onClose }) {
     setSubmitting(true)
     setSubmitError('')
     try {
+      // Map frontend form fields to server-expected field names
+      const preferredDateTime = [form.preferredDate, form.preferredTime].filter(Boolean).join(' ') || null
       const res = await postMentorBook(
         {
           mentorId: mentor.id,
-          studentName: form.name,
-          studentEmail: form.email,
-          phone: form.phone,
-          classLevel: form.classLevel,
-          areaOfInterest: form.areaOfInterest,
-          preferredLanguage: form.preferredLanguage,
-          preferredDate: form.preferredDate,
-          preferredTime: form.preferredTime,
-          notes: form.notes,
+          contactName: form.name,
+          contactEmail: form.email,
+          contactPhone: form.phone,
+          classLevel: form.classLevel || 'class12',
+          areaOfInterest: form.areaOfInterest || 'General Guidance',
+          preferredLanguage: form.preferredLanguage || 'English',
+          preferredDateTime,
+          guidanceQuery: form.notes || 'I would like general career guidance from this mentor.',
         },
         session?.access_token
       )
