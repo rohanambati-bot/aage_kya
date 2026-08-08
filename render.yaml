@@ -9,7 +9,7 @@ services:
     autoDeploy: false
     buildCommand: npm ci --omit=dev
     startCommand: npm start
-    healthCheckPath: /api/health/ready
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production

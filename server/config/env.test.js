@@ -31,7 +31,7 @@ describe('server environment validation', () => {
     assert.ok(config.errors.includes('Supabase is not configured; auth and persistence-dependent endpoints are unavailable.'))
     assert.ok(config.errors.includes('GROQ_API_KEY is not configured; AI and transcription endpoints are unavailable.'))
     assert.ok(config.errors.includes('SUPABASE_SERVICE_ROLE_KEY is required in production for server-managed writes.'))
-    assert.ok(config.errors.includes('RESEND_API_KEY is required in production.'))
+    assert.ok(config.warnings.includes('RESEND_API_KEY is not set — email notifications will be skipped.'))
     assert.ok(config.errors.includes('PUBLIC_APP_URL is required in production.'))
     assert.throws(() => assertValidEnvironment(config), /Invalid server configuration/)
   })

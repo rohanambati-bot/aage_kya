@@ -112,7 +112,7 @@ export function readEnvironment(source = process.env) {
     errors.push('SUPABASE_SERVICE_ROLE_KEY is required in production for server-managed writes.')
   }
   if (isProduction && !configuredAppUrl) {
-    errors.push('PUBLIC_APP_URL is required in production.')
+    warnings.push('PUBLIC_APP_URL is not set in production — email links will be relative.')
   }
   if (publicAppUrl && !isHttpUrl(publicAppUrl)) {
     errors.push('PUBLIC_APP_URL must be an HTTP or HTTPS URL.')
@@ -121,10 +121,10 @@ export function readEnvironment(source = process.env) {
     errors.push('PUBLIC_APP_URL must use HTTPS in production.')
   }
   if (isProduction && !resendApiKey) {
-    errors.push('RESEND_API_KEY is required in production.')
+    warnings.push('RESEND_API_KEY is not set — email notifications will be skipped.')
   }
-  if (isProduction && !isEmail(resendFromEmail)) {
-    errors.push('RESEND_FROM_EMAIL must be a valid verified sender in production.')
+  if (isProduction && resendApiKey && !isEmail(resendFromEmail)) {
+    warnings.push('RESEND_FROM_EMAIL must be a valid verified sender when RESEND_API_KEY is set; email notifications will be skipped.')
   }
 
   return Object.freeze({
