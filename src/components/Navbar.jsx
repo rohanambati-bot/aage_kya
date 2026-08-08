@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import SearchBar from './SearchBar'
 
 export default function Navbar() {
-  const { user, profile, signOut } = useAuth()
+  const { user, profile, signOut, loginAsDemo, continueAsGuest } = useAuth()
 
   const onboardingLink = '/onboarding'
   const resultLink = profile?.class_level === 'class10' ? '/class10/result' : '/result'
@@ -12,41 +12,32 @@ export default function Navbar() {
   const isAdminUser = profile?.role === 'admin'
   const isMentorUser = profile?.role === 'mentor'
 
-  // Admins and mentors get a stripped-down nav — only their own dashboard.
-  // All the student-facing sections (Home, Explore, Careers, etc.) are hidden.
   const navLinks = isAdminUser
-    ? [{ to: '/admin-dashboard', label: 'Admin Dashboard' }]
+    ? [{ to: '/admin-dashboard', label: 'Admin', icon: '🔑' }]
     : isMentorUser
-    ? [{ to: '/mentor-dashboard', label: 'Mentor Dashboard' }]
+    ? [{ to: '/mentor-dashboard', label: 'Mentor Hub', icon: '🌟' }]
     : [
-        { to: '/',           label: 'Home' },
-        { to: '/explore',    label: 'Explore Paths' },
-        { to: onboardingLink, label: 'Get Started' },
-        { to: '/career-pipeline', label: 'Careers' },
-        { to: '/competitive-exams', label: 'Exams' },
-        { to: '/online-education', label: 'Learn Online' },
-        { to: '/scholarships', label: 'Scholarships' },
-        { to: '/study-abroad', label: 'Abroad' },
-        { to: '/mentors',    label: 'Mentors' },
+        { to: '/',           label: 'Home',       icon: '🏠' },
+        { to: '/explore',    label: 'Explore',    icon: '🎯' },
+        { to: onboardingLink, label: 'Get Started', icon: '🚀' },
+        { to: '/career-pipeline', label: 'Careers', icon: '🎓' },
+        { to: '/mentors',    label: 'Mentors',    icon: '🌟' },
       ]
-  const [isOpen, setIsOpen]     = useState(false)
-  const [scrolled, setScrolled] = useState(false)
+
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [demoDropdownOpen, setDemoDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
+  const demoDropdownRef = useRef(null)
   const navigate = useNavigate()
 
-  // Scroll-aware glass effect
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
-  // Close dropdown on outside click
+  // Close dropdowns on outside click
   useEffect(() => {
     const handler = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setDropdownOpen(false)
+      }
+      if (demoDropdownRef.current && !demoDropdownRef.current.contains(e.target)) {
+        setDemoDropdownOpen(false)
       }
     }
     document.addEventListener('mousedown', handler)
@@ -64,250 +55,160 @@ export default function Navbar() {
   const isAdmin = profile?.role === 'admin'
 
   return (
-    <>
-      <nav
-        className={`fixed top-0 left-0 right-0 z-50 font-sans transition-all duration-300 ${
-          scrolled
-            ? 'bg-[#06080F]/92 backdrop-blur-xl border-b border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.4)]'
-            : 'bg-transparent border-b border-transparent'
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-
-            {/* Logo */}
-            <Link to={isAdminUser ? '/admin-dashboard' : isMentorUser ? '/mentor-dashboard' : '/'} className="flex items-center gap-2.5 group flex-shrink-0">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-saffron to-saffron-dark flex items-center justify-center text-white font-bold text-sm font-display group-hover:scale-110 transition-transform duration-200 shadow-md">
-                AK
-              </div>
-              <span className="font-display font-bold text-xl text-white group-hover:text-saffron transition-colors duration-200">
-                Aage Kya?
-              </span>
-            </Link>
-
-            {/* Desktop nav links */}
-            <div className="hidden lg:flex items-center gap-0.5">
-              {navLinks.map((link) => (
-                <NavLink
-                  key={link.to}
-                  to={link.to}
-                  end={link.to === '/'}
-                  className={({ isActive }) =>
-                    `relative px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
-                      isActive
-                        ? 'text-white bg-white/8'
-                        : 'text-gray-400 hover:text-white hover:bg-white/5'
-                    }`
-                  }
-                >
-                  {({ isActive }) => (
-                    <>
-                      {link.label}
-                      {isActive && (
-                        <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-saffron" />
-                      )}
-                    </>
-                  )}
-                </NavLink>
-              ))}
+    <div className="fixed bottom-6 inset-x-0 z-50 flex justify-center items-center pointer-events-none font-sans px-2">
+      <nav className="pointer-events-auto max-w-[98vw] sm:max-w-fit animate-slide-up">
+        {/* Floating dock with glassmorphism */}
+        <div className="relative flex items-center gap-1.5 sm:gap-2 px-3.5 py-2 bg-[#0D1424]/90 backdrop-blur-2xl border border-sky-400/30 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:border-sky-300/60 transition-all duration-300">
+          
+          {/* Brand Logo Pill */}
+          <Link 
+            to={isAdminUser ? '/admin-dashboard' : isMentorUser ? '/mentor-dashboard' : '/'} 
+            className="flex items-center gap-2 pl-1.5 pr-3 py-1 rounded-full bg-sky-500/10 hover:bg-sky-500/20 border border-sky-400/30 transition-all duration-200 hover:scale-105"
+          >
+            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-rose-500 flex items-center justify-center text-white font-black text-[9px] font-display shadow-sm">
+              AK
             </div>
+            <span className="text-white font-black text-xs hidden md:inline font-display tracking-tight">Aage Kya?</span>
+          </Link>
 
-            {/* Desktop right side */}
-            <div className="hidden md:flex items-center gap-2">
-              {/* Universal Search */}
-              <SearchBar isCompact />
-
-              {user ? (
-                <div className="relative" ref={dropdownRef}>
-                  <button
-                    onClick={() => setDropdownOpen(!dropdownOpen)}
-                    className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl px-3 py-2 transition-all duration-200"
-                  >
-                    {/* Avatar */}
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-saffron to-saffron-dark flex items-center justify-center text-white text-xs font-bold">
-                      {initials}
-                    </div>
-                    <span className="text-gray-300 text-xs max-w-[80px] truncate hidden lg:inline">{user.email}</span>
-                    <svg className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-
-                  {/* Dropdown */}
-                  {dropdownOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-56 bg-[#0D1117] rounded-xl border border-white/10 overflow-hidden shadow-xl animate-fade-in z-50">
-                      <div className="px-4 py-3 border-b border-white/5">
-                        <p className="text-white text-xs font-semibold truncate">{user.email}</p>
-                        <p className="text-gray-500 text-[10px] mt-0.5 capitalize">
-                          {isAdmin ? '🔑 Admin' : isMentor ? '🌟 Mentor' : '🎓 Student'}
-                        </p>
-                      </div>
-                      <div className="py-1">
-                        {!isAdmin && !isMentor && (
-                          <Link
-                            to="/dashboard"
-                            onClick={() => setDropdownOpen(false)}
-                            className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
-                          >
-                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                            Dashboard
-                          </Link>
-                        )}
-                        {isAdmin && (
-                          <Link
-                            to="/admin-dashboard"
-                            onClick={() => setDropdownOpen(false)}
-                            className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
-                          >
-                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                            </svg>
-                            Admin Dashboard
-                          </Link>
-                        )}
-                        {isMentor && (
-                          <Link
-                            to="/mentor-dashboard"
-                            onClick={() => setDropdownOpen(false)}
-                            className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
-                          >
-                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                            </svg>
-                            Mentor Dashboard
-                          </Link>
-                        )}
-                        {!isAdmin && !isMentor && (
-                          <Link
-                            to={resultLink}
-                            onClick={() => setDropdownOpen(false)}
-                            className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
-                          >
-                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
-                            My Results
-                          </Link>
-                        )}
-                        {!isAdmin && !isMentor && (
-                          <Link
-                            to="/my-mentor-requests"
-                            onClick={() => setDropdownOpen(false)}
-                            className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
-                          >
-                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                            </svg>
-                            My Mentor Requests
-                          </Link>
-                        )}
-                      </div>
-                      <div className="border-t border-white/5 py-1">
-                        <button
-                          onClick={handleSignOut}
-                          className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-rose-400 hover:text-rose-300 hover:bg-rose-500/5 transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                          </svg>
-                          Sign Out
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <Link
-                  to="/auth"
-                  className="btn-primary text-xs py-2 px-5"
-                >
-                  Sign In
-                </Link>
-              )}
-            </div>
-
-            {/* Mobile toggle */}
-            <button
-              className="md:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
-              onClick={() => setIsOpen(!isOpen)}
-              aria-label="Toggle menu"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                {isOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          {/* Navigation Tabs */}
+          <div className="flex items-center gap-1">
+            {navLinks.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                end={link.to === '/'}
+                className={({ isActive }) =>
+                  `relative flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
+                    isActive
+                      ? 'text-white bg-gradient-to-r from-blue-600/30 via-indigo-600/30 to-rose-600/30 border border-sky-400/40 font-black shadow-[0_0_15px_rgba(56,189,248,0.3)]'
+                      : 'text-slate-300 hover:text-white hover:bg-white/10'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <span className="text-sm leading-none">{link.icon}</span>
+                    <span className="hidden sm:inline">{link.label}</span>
+                    {isActive && (
+                      <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-sky-300 animate-pulse" />
+                    )}
+                  </>
                 )}
-              </svg>
-            </button>
+              </NavLink>
+            ))}
           </div>
 
-          {/* Mobile menu */}
-          {isOpen && (
-            <div className="md:hidden pb-4 border-t border-white/5 mt-2 pt-4 space-y-1 animate-fade-in">
-              {/* Mobile Search */}
-              <div className="mb-3 px-1">
-                <SearchBar isCompact={false} />
-              </div>
+          {/* Search Trigger */}
+          <SearchBar isCompact />
 
-              {navLinks.map((link) => (
-                <NavLink
-                  key={link.to}
-                  to={link.to}
-                  end={link.to === '/'}
-                  onClick={() => setIsOpen(false)}
-                  className={({ isActive }) =>
-                    `block px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                      isActive
-                        ? 'text-white bg-saffron/15 border border-saffron/20'
-                        : 'text-gray-400 hover:text-white hover:bg-white/5'
-                    }`
-                  }
-                >
-                  {link.label}
-                </NavLink>
-              ))}
-              <div className="pt-3 border-t border-white/5 space-y-2">
-                {user ? (
-                  <>
-                    {!isAdmin && (
-                      <Link to="/dashboard" onClick={() => setIsOpen(false)} className="block px-3 py-2.5 rounded-xl text-sm text-gray-300 hover:text-white hover:bg-white/5">
-                        Dashboard
-                      </Link>
-                    )}
-                    {isAdmin && (
-                      <Link to="/admin-dashboard" onClick={() => setIsOpen(false)} className="block px-3 py-2.5 rounded-xl text-sm text-gray-300 hover:text-white hover:bg-white/5">
-                        Admin Dashboard
-                      </Link>
-                    )}
-                    {isMentor && (
-                      <Link to="/mentor-dashboard" onClick={() => setIsOpen(false)} className="block px-3 py-2.5 rounded-xl text-sm text-gray-300 hover:text-white hover:bg-white/5">
-                        Mentor Dashboard
-                      </Link>
-                    )}
-                    <button
-                      onClick={() => { setIsOpen(false); handleSignOut() }}
-                      className="w-full text-left px-3 py-2.5 rounded-xl text-sm text-rose-400 hover:bg-rose-500/5 transition-colors"
-                    >
-                      Sign Out
-                    </button>
-                  </>
-                ) : (
-                  <Link
-                    to="/auth"
-                    onClick={() => setIsOpen(false)}
-                    className="block text-center w-full btn-primary text-sm py-2.5"
+          {/* 1-Click Demo Login Dropup */}
+          {!user && (
+            <div className="relative" ref={demoDropdownRef}>
+              <button
+                onClick={() => setDemoDropdownOpen(!demoDropdownOpen)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-black bg-gradient-to-r from-sky-400/20 to-rose-400/20 border border-sky-300/30 text-sky-200 hover:text-white transition-all duration-200 hover:scale-105"
+              >
+                <span>⚡ Demo</span>
+              </button>
+
+              {demoDropdownOpen && (
+                <div className="absolute right-0 bottom-full mb-3 w-60 max-h-[75vh] overflow-y-auto bg-[#141D33]/95 backdrop-blur-2xl rounded-2xl border border-sky-400/40 shadow-2xl animate-scale-in z-50 p-2 space-y-1">
+                  <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-sky-300 border-b border-white/10 mb-1">
+                    ⚡ 1-Click Judge Access
+                  </div>
+                  <button
+                    onClick={() => { setDemoDropdownOpen(false); loginAsDemo('student', 'demo-student-10th@aagekya.com', 'class10'); navigate('/dashboard'); }}
+                    className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-xs font-semibold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 text-left transition-colors"
                   >
-                    Sign In
-                  </Link>
-                )}
-              </div>
+                    <span>🎓</span> <span>Student Demo (10th)</span>
+                  </button>
+                  <button
+                    onClick={() => { setDemoDropdownOpen(false); loginAsDemo('student', 'demo-student-12th@aagekya.com', 'class12'); navigate('/dashboard'); }}
+                    className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-xs font-semibold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 text-left transition-colors"
+                  >
+                    <span>🎓</span> <span>Student Demo (12th)</span>
+                  </button>
+                  <button
+                    onClick={() => { setDemoDropdownOpen(false); loginAsDemo('mentor'); navigate('/mentor-dashboard'); }}
+                    className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-xs font-semibold text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 text-left transition-colors"
+                  >
+                    <span>🧭</span> <span>Mentor Demo</span>
+                  </button>
+                  <button
+                    onClick={() => { setDemoDropdownOpen(false); loginAsDemo('admin'); navigate('/admin-dashboard'); }}
+                    className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-xs font-semibold text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 text-left transition-colors"
+                  >
+                    <span>🛡️</span> <span>Admin Demo</span>
+                  </button>
+                  <button
+                    onClick={async () => { setDemoDropdownOpen(false); await continueAsGuest(); navigate('/explore'); }}
+                    className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-xs font-semibold text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 text-left transition-colors"
+                  >
+                    <span>🚀</span> <span>Guest Mode</span>
+                  </button>
+                </div>
+              )}
             </div>
+          )}
+
+          {/* User Account / Sign In Dropup */}
+          {user ? (
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 border border-white/15 rounded-full px-2.5 py-1 transition-all duration-200 hover:scale-105"
+              >
+                <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-rose-500 flex items-center justify-center text-white text-[10px] font-black">
+                  {initials}
+                </div>
+                <span className="text-slate-200 text-xs font-semibold max-w-[75px] truncate hidden md:inline">{user.email}</span>
+              </button>
+
+              {dropdownOpen && (
+                <div className="absolute right-0 bottom-full mb-3 w-60 max-h-[75vh] overflow-y-auto bg-[#141D33]/95 backdrop-blur-2xl rounded-2xl border border-sky-400/40 shadow-2xl animate-scale-in z-50 p-2 space-y-1">
+                  <div className="px-3 py-2 border-b border-white/10">
+                    <p className="text-white text-xs font-bold truncate">{user.email}</p>
+                    <p className="text-slate-400 text-[10px] capitalize mt-0.5">
+                      {isAdmin ? '🔑 Admin' : isMentor ? '🌟 Mentor' : '🎓 Student'}
+                    </p>
+                  </div>
+                  {!isAdmin && !isMentor && (
+                    <Link to="/dashboard" onClick={() => setDropdownOpen(false)} className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-xs text-slate-300 hover:text-white hover:bg-white/10 transition-colors">
+                      👤 Dashboard
+                    </Link>
+                  )}
+                  {isAdmin && (
+                    <Link to="/admin-dashboard" onClick={() => setDropdownOpen(false)} className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-xs text-slate-300 hover:text-white hover:bg-white/10 transition-colors">
+                      🔑 Admin Dashboard
+                    </Link>
+                  )}
+                  {isMentor && (
+                    <Link to="/mentor-dashboard" onClick={() => setDropdownOpen(false)} className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-xs text-slate-300 hover:text-white hover:bg-white/10 transition-colors">
+                      🌟 Mentor Dashboard
+                    </Link>
+                  )}
+                  {!isAdmin && !isMentor && (
+                    <Link to={resultLink} onClick={() => setDropdownOpen(false)} className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-xs text-slate-300 hover:text-white hover:bg-white/10 transition-colors">
+                      🧭 My Results
+                    </Link>
+                  )}
+                  <button onClick={handleSignOut} className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-xs text-rose-400 hover:bg-rose-500/10 transition-colors">
+                    🚪 Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link
+              to="/auth"
+              className="btn-primary text-xs py-1.5 px-4 rounded-full font-black shadow-md hover:scale-105 transition-all"
+            >
+              Sign In
+            </Link>
           )}
         </div>
       </nav>
-    </>
+    </div>
   )
 }

@@ -1,6 +1,5 @@
 import express from 'express'
 import { supabase, supabaseAdmin } from '../utils/db.js'
-import { requireAuth } from '../middleware/auth.js'
 
 const router = express.Router()
 
@@ -46,7 +45,7 @@ router.get('/api/analytics', async (req, res) => {
     })
   } catch (err) {
     console.error('Analytics API Error:', err.message)
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 

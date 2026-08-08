@@ -21,7 +21,7 @@ router.get('/api/qa', async (req, res) => {
     if (error) throw error
     res.json({ posts: data || [], page })
   } catch (err) {
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -40,7 +40,7 @@ router.post('/api/qa', requireAuth(), qaPostLimiter, async (req, res) => {
     if (error) throw error
     res.json({ post: data })
   } catch (err) {
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -61,7 +61,7 @@ router.patch('/api/qa/:id/answer', requireRole('mentor'), async (req, res) => {
     if (error) throw error
     res.json({ post: data })
   } catch (err) {
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 

@@ -4,9 +4,6 @@ import {
   computeMatch,
   computeAcademicFit,
   computeLocationFit,
-  computeBudgetFit,
-  computeStreamFit,
-  computeOutcomeSignal,
   computeSizeCategory,
   haversineKm,
 } from './localMatchEngine.js'

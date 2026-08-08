@@ -31,7 +31,6 @@ import {
   scoreDomains,
   getCoursesByDomains,
   getCoursesForStream,
-  getPathwaysForClassLevel,
   findPathwayById,
   computeAffordability,
   DATASET_META,
@@ -450,6 +449,7 @@ function buildOption(truth, aiText, isClass10) {
     why_this_fits: aiText.why_this_fits,
     honest_note: aiText.honest_note,
     fit_label: aiText.fit_label,
+    bucket: (aiText.fit_label === 'Stretch Option' || truth.difficulty === 'very_high') ? 'ambitious' : (aiText.fit_label === 'Safe Option') ? 'safe' : 'target',
     description: truth.description,
     verified: true, // fact-checked against the curated dataset
   }

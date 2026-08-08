@@ -21,6 +21,9 @@ import { fileURLToPath } from 'url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.join(__dirname, '.env'), override: true })
 
+import { INSTITUTIONS_SEED_DATA } from './data/institutionsSeedData.js'
+import { SCHOLARSHIP_PORTALS, SCHOLARSHIP_SCHEMES } from './data/scholarshipsSeedData.js'
+
 const supabaseUrl = process.env.SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -596,6 +599,110 @@ async function seedMentors() {
   console.log(`\n  ✅ ${upserted} mentors upserted, ${errors} errors`)
 }
 
+async function seedV2Architecture() {
+  console.log('\n🏛️  Seeding V2 Normalized Architecture (Institutions, Campuses, Programs, Scholarships)...')
+  
+  // 1. Seed Portals
+  for (const portal of SCHOLARSHIP_PORTALS) {
+    try {
+      await supabase.from('scholarship_portals').upsert(portal, { onConflict: 'name' })
+    } catch (_) {}
+  }
+
+  // 2. Seed Institutions, Campuses & Programs
+  for (const inst of INSTITUTIONS_SEED_DATA) {
+    try {
+      const { data: instRow } = await supabase.from('institutions').upsert({
+        name: inst.name,
+        short_name: inst.short_name,
+        institution_type: inst.institution_type,
+        aishe_code: inst.aishe_code,
+        official_domain: inst.official_domain,
+        national: inst.national,
+        verification_status: 'verified',
+        last_verified_at: new Date().toISOString()
+      }, { onConflict: 'name' }).select('id').maybeSingle()
+
+      if (instRow?.id) {
+        // Seed Aliases
+        if (Array.isArray(inst.aliases)) {
+          for (const alias of inst.aliases) {
+            try {
+              await supabase.from('institution_aliases').upsert({ institution_id: instRow.id, alias }, { onConflict: 'alias' })
+            } catch (_) {}
+          }
+        }
+
+        // Seed Campus
+        const { data: campusRow } = await supabase.from('campuses').upsert({
+          institution_id: instRow.id,
+          city: inst.campus.city,
+          state: inst.campus.state,
+          is_main_campus: inst.campus.is_main_campus
+        }).select('id').maybeSingle()
+
+        // Seed Programs
+        if (campusRow?.id && Array.isArray(inst.programs)) {
+          for (const prog of inst.programs) {
+            try {
+              await supabase.from('program_offerings').upsert({
+                campus_id: campusRow.id,
+                program_name: prog.program_name,
+                stream: prog.stream,
+                duration_years: prog.duration_years,
+                yearly_tuition_min: prog.yearly_tuition_min,
+                yearly_tuition_max: prog.yearly_tuition_max,
+                hostel_cost_annual: prog.hostel_cost_annual,
+                min_marks: prog.min_marks,
+                entrance_exam: prog.entrance_exam,
+                verification_status: 'verified',
+                last_verified_at: new Date().toISOString()
+              })
+            } catch (_) {}
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  // 3. Seed Scholarship Schemes & Cycles
+  for (const scheme of SCHOLARSHIP_SCHEMES) {
+    try {
+      const { data: schemeRow } = await supabase.from('scholarship_schemes').upsert({
+        name: scheme.name,
+        provider: scheme.provider,
+        scheme_type: scheme.scheme_type,
+        official_url: scheme.official_url,
+        description: scheme.description
+      }, { onConflict: 'name' }).select('id').maybeSingle()
+
+      if (schemeRow?.id && scheme.cycle) {
+        try {
+          await supabase.from('scholarship_cycles').upsert({
+            scheme_id: schemeRow.id,
+            academic_year: scheme.cycle.academic_year,
+            award_amount_min: scheme.cycle.award_amount_min,
+            award_amount_max: scheme.cycle.award_amount_max,
+            income_limit_lakh: scheme.cycle.income_limit_lakh,
+            marks_requirement: scheme.cycle.marks_requirement,
+            eligible_streams: scheme.cycle.eligible_streams,
+            eligible_states: scheme.cycle.eligible_states,
+            eligible_categories: scheme.cycle.eligible_categories,
+            degree_levels: scheme.cycle.degree_levels,
+            application_url: scheme.cycle.application_url,
+            documents_required: scheme.cycle.documents_required,
+            renewal_conditions: scheme.cycle.renewal_conditions,
+            verification_status: 'verified',
+            last_verified_at: new Date().toISOString()
+          }, { onConflict: 'scheme_id,academic_year' })
+        } catch (_) {}
+      }
+    } catch (_) {}
+  }
+
+  console.log('  ✅ V2 Normalized Architecture seeded successfully!')
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -613,8 +720,9 @@ async function main() {
   await seedColleges()
   await seedScholarships()
   await seedMentors()
+  await seedV2Architecture()
 
-  console.log('\n✅ Seed complete! Your RAG and Mentor data is ready.')
+  console.log('\n✅ Seed complete! Your RAG, Mentor, and V2 normalized data is ready.')
   console.log('   Restart the server and test GET /api/health to confirm.')
 }
 

@@ -16,7 +16,7 @@ router.get('/api/scenarios', requireAuth(), async (req, res) => {
     if (error) throw error
     res.json({ scenarios: data || [] })
   } catch (err) {
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -36,7 +36,7 @@ router.post('/api/scenarios', requireAuth(), scenarioLimiter, async (req, res) =
     if (error) throw error
     res.json({ scenario: data })
   } catch (err) {
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -50,11 +50,8 @@ router.delete('/api/scenarios/:id', requireAuth(), async (req, res) => {
     if (error) throw error
     res.json({ success: true })
   } catch (err) {
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
-
-// ── POST /api/mentor-sessions ──────────────────────────────────────────────────
-const sessionCreateLimiter = createRateLimiter(5, 86400000, 'Too many session requests today.')
 
 export default router

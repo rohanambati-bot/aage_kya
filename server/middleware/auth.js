@@ -1,21 +1,38 @@
 import { supabase } from '../utils/db.js'
 
+// Demo/judge bypass tokens grant admin, mentor, and student sessions with NO
+// credential check. They must be opt-in, never merely "not production":
+// `NODE_ENV !== 'production'` fails OPEN whenever NODE_ENV is unset or
+// misspelled on a host, which would expose `demo-admin-token` publicly.
+// Enabling now requires an explicit ENABLE_DEMO_LOGIN=true AND a non-production
+// NODE_ENV, so a production deploy cannot switch it on by accident.
 const isDev = process.env.NODE_ENV !== 'production'
+const demoLoginEnabled = process.env.ENABLE_DEMO_LOGIN === 'true' && isDev
 
-const ADMIN_EMAILS = [
-  'admin@aagekya.com',
-  'admin@gmail.com',
-  'demo-admin@aagekya.com',
-  ...(process.env.ADMIN_EMAILS ? process.env.ADMIN_EMAILS.split(',') : [])
-].map(e => e.trim().toLowerCase())
+if (process.env.ENABLE_DEMO_LOGIN === 'true' && !isDev) {
+  console.error('[auth] ENABLE_DEMO_LOGIN=true is ignored because NODE_ENV=production. Credential-free demo logins stay disabled.')
+}
+
+// Admin identities come from the ADMIN_EMAILS environment variable only.
+//
+// The previous hardcoded list included `admin@gmail.com` — an address on a
+// public free-mail domain that anyone could register, sign up with, and be
+// granted full admin rights over the platform. The `@admin.aagekya.com` suffix
+// rule was equally unsafe: it trusted a self-asserted signup email, so anyone
+// controlling any mail on that subdomain (or able to register it) became admin.
+// Both are removed. Demo admin identities are dev-only, handled below.
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
+  .split(',')
+  .map(e => e.trim().toLowerCase())
+  .filter(Boolean)
 
 // Retrieve authenticated user from Supabase token; also fetches role from students table
 export async function getAuthUser(authHeader) {
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null
   const token = authHeader.split(' ')[1]
 
-  // Developer/Demo bypass — only active in development mode
-  if (isDev) {
+  // Developer/Demo bypass — requires explicit ENABLE_DEMO_LOGIN=true opt-in
+  if (demoLoginEnabled) {
     if (token === 'demo-student-token') {
       return {
         id: '00000000-0000-0000-0000-000000000001',
@@ -48,8 +65,11 @@ export async function getAuthUser(authHeader) {
 
     const email = (user.email || '').toLowerCase()
 
-    // 1. Admin Email Whitelist check
-    if (ADMIN_EMAILS.includes(email) || email.endsWith('@admin.aagekya.com')) {
+    // 1. Admin allow-list, sourced from server configuration (not user input).
+    //    Requires a confirmed email so an unverified signup claiming an
+    //    allow-listed address cannot gain admin rights.
+    const emailConfirmed = Boolean(user.email_confirmed_at || user.confirmed_at)
+    if (email && emailConfirmed && ADMIN_EMAILS.includes(email)) {
       user.role = 'admin'
       return user
     }

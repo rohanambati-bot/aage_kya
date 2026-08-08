@@ -41,12 +41,18 @@ export function datastoreError(context, cause) {
 }
 
 const isDev = process.env.NODE_ENV !== 'production'
+// Mirrors server/middleware/auth.js: the demo tokens hand back an RLS-bypassing
+// service-role client, so they must be explicitly opted into rather than
+// enabled by the absence of NODE_ENV=production.
+const demoLoginEnabled = process.env.ENABLE_DEMO_LOGIN === 'true' && isDev
+
+const DEMO_TOKENS = new Set(['demo-student-token', 'demo-admin-token', 'demo-mentor-token'])
 
 // User-scoped Supabase client helper to respect Row Level Security (RLS)
 export function getSupabaseClient(authHeader) {
   if (authHeader) {
     const token = authHeader.split(' ')[1]
-    if (isDev && (token === 'demo-student-token' || token === 'demo-admin-token' || token === 'demo-mentor-token')) {
+    if (demoLoginEnabled && DEMO_TOKENS.has(token)) {
       return supabaseAdmin || createClient(supabaseUrl, supabaseAnonKey)
     }
     return createClient(supabaseUrl, supabaseAnonKey, {

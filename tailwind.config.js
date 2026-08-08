@@ -8,17 +8,39 @@ export default {
     extend: {
       colors: {
         navy: {
-          DEFAULT: '#06080F',
-          950: '#06080F',
-          900: '#0A0F1E',
-          800: '#111827',
-          700: '#1F2937',
-          600: '#374151',
+          DEFAULT: '#0D1424',
+          950: '#0D1424',
+          900: '#141D33',
+          800: '#1E2B47',
+          700: '#2C3E63',
+          600: '#475E8A',
         },
         saffron: {
-          DEFAULT: '#FF6B00',
-          light: '#FF8C33',
-          dark: '#CC5500',
+          DEFAULT: '#3B82F6',
+          light: '#60A5FA',
+          dark: '#F43F5E',
+        },
+        sapphire: {
+          DEFAULT: '#2563EB',
+          light: '#60A5FA',
+          dark: '#1D4ED8',
+        },
+        coral: {
+          DEFAULT: '#F43F5E',
+          light: '#FB7185',
+          dark: '#E11D48',
+        },
+        ice: {
+          DEFAULT: '#E0F2FE',
+          light: '#F0F9FF',
+          dark: '#BAE6FD',
+        },
+        pastel: {
+          blue: '#DBEAFE',
+          indigo: '#E0E7FF',
+          rose: '#FFE4E6',
+          amber: '#FEF3C7',
+          mint: '#D1FAE5',
         },
         'light-gray': '#F8FAFC',
       },

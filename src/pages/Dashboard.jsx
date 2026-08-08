@@ -33,6 +33,8 @@ export default function Dashboard() {
   }, [user, authLoading, navigate])
 
   // Load dashboard data
+  const [matchedScholarships, setMatchedScholarships] = useState([])
+
   useEffect(() => {
     if (!user) return
     const load = async () => {
@@ -43,33 +45,60 @@ export default function Dashboard() {
           supabase.from('roadmaps').select('*').eq('student_id', user.id).order('created_at', { ascending: false }),
           supabase.from('students').select('*').eq('id', user.id).maybeSingle()
         ])
-        setGuidance(g)
+
+        // 1. Guidance fallback to local storage if DB row missing
+        let activeGuidance = g
+        if (!activeGuidance) {
+          try {
+            const localRes = localStorage.getItem('aageKyaLastResult')
+            if (localRes) activeGuidance = JSON.parse(localRes)
+          } catch (_) {}
+        }
+        setGuidance(activeGuidance)
         setRoadmaps(r || [])
         setWallet(student?.academic_wallet || [])
 
-        // Load completed tracker tasks from localStorage
+        // 2. Load completed tracker tasks from localStorage
         const storedTasks = localStorage.getItem(`aageKyaCompletedTasks:${user.id}`)
         if (storedTasks) {
           setCompletedTasks(JSON.parse(storedTasks))
         }
 
-        // Fetch matched mentor
-        if (student) {
-          const streamToMatch = student.stream || 'Class 10 / Stream Selection'
-          const classLevel = student.class_level || 'class12'
+        // 3. Fetch matched mentor
+        const studentProfileData = student || profile || {}
+        if (studentProfileData) {
+          const streamToMatch = studentProfileData.stream || 'Class 10 / Stream Selection'
+          const classLevel = studentProfileData.class_level || 'class12'
 
-          const res = await getMentors()
-          if (res.ok) {
-            const mentors = await res.json()
-            const match = mentors.find(m => {
-              if (classLevel === 'class10') {
-                return m.stream_category === 'Class 10 / Stream Selection' && m.available
-              }
-              return m.stream_category === streamToMatch && m.available
+          getMentors()
+            .then(res => res.ok ? res.json() : [])
+            .then(mentors => {
+              const match = mentors.find(m => {
+                if (classLevel === 'class10') {
+                  return m.stream_category === 'Class 10 / Stream Selection' && m.available
+                }
+                return m.stream_category === streamToMatch && m.available
+              }) || mentors.find(m => m.available)
+              setMatchedMentor(match || null)
             })
-            setMatchedMentor(match || null)
-          }
+            .catch(() => {})
         }
+
+        // 4. Fetch deterministic scholarship matches for student
+        const marksParam = studentProfileData.marks || 80
+        const streamParam = encodeURIComponent(studentProfileData.stream || 'Science (PCM)')
+        const stateParam = encodeURIComponent(studentProfileData.state || 'Karnataka')
+        const incomeParam = encodeURIComponent(studentProfileData.income_range || '2.5L-5L')
+
+        fetch(`/api/scholarships/match?marks=${marksParam}&stream=${streamParam}&state=${stateParam}&incomeRange=${incomeParam}`)
+          .then(res => res.ok ? res.json() : null)
+          .then(resData => {
+            if (resData?.success && resData?.data?.eligible) {
+              setMatchedScholarships(resData.data.eligible)
+            }
+          })
+          .catch(() => {})
+
       } catch (err) {
         console.error('Error loading dashboard data:', err)
       } finally {
@@ -77,7 +106,7 @@ export default function Dashboard() {
       }
     }
     load()
-  }, [user])
+  }, [user, profile])
 
   if (authLoading || (dataLoading && !guidance)) {
     return (
@@ -126,7 +155,7 @@ export default function Dashboard() {
     setReOnboarding(true)
     try {
       const token = session?.access_token
-      
+
       // Step 1: Archive current report first
       await postReOnboard(token)
 
@@ -309,7 +338,7 @@ export default function Dashboard() {
           const yearLabel = profile.class_level === 'class10'
             ? (yearData.year === 1 ? 'Class 11' : yearData.year === 2 ? 'Class 12' : `College Yr ${yearData.year - 2}`)
             : `Year ${yearData.year}`
-          
+
           if (yearData.skills && yearData.skills.length > 0) {
             list.push({
               id: `rm_${rm.id}_yr_${yearData.year}_skills`,
@@ -406,6 +435,69 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* ── Guidance Preference Choice Hero Banner ── */}
+        <div className="glass-card p-6 sm:p-8 mb-8 rounded-3xl border border-blue-500/40 relative overflow-hidden bg-gradient-to-br from-blue-600/15 via-indigo-900/30 to-rose-900/15 shadow-2xl">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+            <div className="flex-1 text-center lg:text-left">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3.5 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 mb-3 shadow-md">
+                ⚡ Choose Your Comfortable Guidance Format
+              </span>
+              <h2 className="font-display text-xl sm:text-2xl font-black text-white leading-tight">
+                How do you prefer to discover your career options?
+              </h2>
+              <p className="text-gray-300 text-xs sm:text-sm mt-1.5 leading-relaxed max-w-xl">
+                We adapt to your comfort level! Choose between quick multiple-choice option picking or writing/speaking about your interests in your own words.
+              </p>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-3.5 w-full lg:w-auto shrink-0 font-sans">
+              {/* Choice 1: Multiple Choice Quiz */}
+              <Link
+                to="/explore"
+                className="p-5 rounded-2xl bg-gradient-to-br from-blue-600/20 to-indigo-600/10 hover:from-blue-600/30 hover:to-indigo-600/20 border border-blue-400/40 transition-all duration-300 group text-left flex flex-col justify-between hover:scale-[1.03] shadow-lg hover:shadow-blue-500/25"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-2xl">🎯</span>
+                    <span className="text-[10px] uppercase font-black text-blue-300 bg-blue-500/20 border border-blue-400/30 px-2 py-0.5 rounded-md">
+                      Multiple Choice
+                    </span>
+                  </div>
+                  <h3 className="font-bold text-white text-sm">Explore Paths Quiz</h3>
+                  <p className="text-gray-400 text-xs mt-1 leading-relaxed">
+                    Fast &amp; tap-based! Answer quick structured questions about marks, streams &amp; budget.
+                  </p>
+                </div>
+                <div className="mt-4 text-xs font-bold text-blue-300 group-hover:underline flex items-center gap-1">
+                  <span>Explore Paths →</span>
+                </div>
+              </Link>
+
+              {/* Choice 2: Deep Narrative / Write-In */}
+              <Link
+                to={profile?.role === 'other' ? '/onboarding' : profile?.class_level === 'class10' ? '/class10/onboarding' : '/class12/onboarding'}
+                className="p-5 rounded-2xl bg-gradient-to-br from-rose-600/20 to-pink-600/10 hover:from-rose-600/30 hover:to-pink-600/20 border border-rose-400/40 transition-all duration-300 group text-left flex flex-col justify-between hover:scale-[1.03] shadow-lg hover:shadow-rose-500/25"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-2xl">✍️</span>
+                    <span className="text-[10px] uppercase font-black text-rose-300 bg-rose-500/20 border border-rose-400/30 px-2 py-0.5 rounded-md">
+                      Write-In / Voice
+                    </span>
+                  </div>
+                  <h3 className="font-bold text-white text-sm">Express In Own Words</h3>
+                  <p className="text-gray-400 text-xs mt-1 leading-relaxed">
+                    Deep &amp; personal! Write or record a brief description of your passions &amp; background.
+                  </p>
+                </div>
+                <div className="mt-4 text-xs font-bold text-rose-300 group-hover:underline flex items-center gap-1">
+                  <span>Get Started →</span>
+                </div>
+              </Link>
+            </div>
+          </div>
+        </div>
+
         {/* ── Role-Based Quick Access Tiles ── */}
         {(() => {
           const tiles = [
@@ -474,32 +566,112 @@ export default function Dashboard() {
           <div className="space-y-6 animate-fade-in">
             {guidance ? (
               <>
-                <div className="glass-card p-6 sm:p-8 rounded-2xl border border-white/10 relative">
-                  <h2 className="font-display text-xl font-bold text-white mb-4 flex items-center gap-2">
-                    <span>🧭</span> Career Guidance Overview
-                  </h2>
-                  <p className="text-gray-300 text-base leading-relaxed border-l-3 border-saffron pl-4">
+                <div className="glass-card p-6 sm:p-8 rounded-3xl border border-white/10 relative overflow-hidden bg-gradient-to-br from-navy-800/80 via-navy-900/90 to-navy-950">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="font-display text-xl font-bold text-white flex items-center gap-2">
+                      <span>🧭</span> Active Guidance Report
+                    </h2>
+                    <span className="text-[10px] uppercase font-extrabold tracking-widest px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-400">
+                      ✓ Evidence Grounded
+                    </span>
+                  </div>
+                  <p className="text-gray-300 text-base leading-relaxed border-l-3 border-saffron pl-4 bg-saffron/5 py-2.5 pr-3 rounded-r-xl">
                     {guidance.summary}
                   </p>
 
-                  <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 mt-6">
-                    {(guidance.options || []).map((opt, i) => (
-                      <div key={i} className="bg-white/5 border border-white/10 hover:border-white/20 transition-all rounded-xl p-5">
-                        <div className="text-[10px] text-saffron font-bold uppercase tracking-wider mb-1">Option {i + 1}</div>
-                        <h3 className="font-semibold text-white text-base mb-2 line-clamp-1">{opt.path}</h3>
-                        <p className="text-gray-400 text-xs leading-relaxed line-clamp-3 mb-4">{opt.honest_take}</p>
-                        <Link
-                          to={profile?.class_level === 'class10' ? '/class10/roadmap' : '/class12/roadmap'}
-                          state={{ option: opt, formData: profile }}
-                          className="text-xs text-saffron font-semibold hover:underline flex items-center gap-1"
-                        >
-                          <span>Explore Roadmap</span>
-                          <span>→</span>
-                        </Link>
-                      </div>
-                    ))}
+                  {/* 3-Bucket Classified Recommended Options */}
+                  <div className="mt-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">Classified Career Options</h3>
+                      <span className="text-[11px] text-gray-500">Categorized by admission feasibility</span>
+                    </div>
+                    <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+                      {(guidance.options || []).map((opt, i) => {
+                        const bucket = (opt.bucket || (i === 0 ? 'target' : i === 1 ? 'ambitious' : 'safe')).toLowerCase()
+                        const bucketStyle = {
+                          ambitious: { bg: 'bg-rose-500/10 text-rose-300 border-rose-500/30', icon: '🔴', label: 'Ambitious Reach' },
+                          target: { bg: 'bg-amber-500/10 text-amber-300 border-amber-500/30', icon: '🟡', label: 'Target Fit' },
+                          safe: { bg: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30', icon: '🟢', label: 'Safe Option' },
+                        }[bucket] || { bg: 'bg-blue-500/10 text-blue-300 border-blue-500/30', icon: '🎯', label: 'Match' }
+
+                        return (
+                          <div key={i} className="bg-navy-800/80 border border-white/10 hover:border-saffron/30 transition-all duration-300 rounded-2xl p-5 flex flex-col justify-between group shadow-lg">
+                            <div>
+                              <div className="flex items-center justify-between gap-2 mb-2">
+                                <span className={`text-[9px] uppercase font-black px-2 py-0.5 rounded-full border ${bucketStyle.bg}`}>
+                                  {bucketStyle.icon} {bucketStyle.label}
+                                </span>
+                                <span className="text-[10px] text-gray-500 font-mono">#{i + 1}</span>
+                              </div>
+                              <h3 className="font-bold text-white text-base mb-2 leading-tight group-hover:text-saffron transition-colors">{opt.path}</h3>
+                              <p className="text-gray-400 text-xs leading-relaxed line-clamp-3 mb-3">{opt.honest_take}</p>
+                            </div>
+                            <div className="pt-3 border-t border-white/5 flex items-center justify-between">
+                              <span className="text-white text-xs font-extrabold">{opt.avg_yearly_cost || 'Fees Varies'}</span>
+                              <Link
+                                to={profile?.class_level === 'class10' ? '/class10/roadmap' : '/class12/roadmap'}
+                                state={{ option: opt, formData: profile }}
+                                className="text-xs text-saffron font-bold hover:underline flex items-center gap-1"
+                              >
+                                <span>Roadmap →</span>
+                              </Link>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
+
+                {/* Deterministic Auto-Matched Scholarships */}
+                {matchedScholarships && matchedScholarships.length > 0 && (
+                  <div className="glass-card p-6 sm:p-8 rounded-3xl border border-emerald-500/25 bg-gradient-to-br from-emerald-950/20 via-navy-900 to-navy-950">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">🎓</span>
+                        <div>
+                          <h3 className="font-display font-bold text-lg text-white">Auto-Matched Scholarships</h3>
+                          <p className="text-gray-400 text-xs">Rule-matched specifically for your academic standing &amp; state</p>
+                        </div>
+                      </div>
+                      <Link to="/scholarships" className="text-xs font-semibold text-emerald-400 hover:underline">
+                        View All →
+                      </Link>
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      {matchedScholarships.slice(0, 4).map((sch, idx) => (
+                        <div key={idx} className="bg-navy-800/80 border border-emerald-500/20 rounded-2xl p-4 flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+                                {sch.scheme_type ? sch.scheme_type.replace('_', ' ') : 'Government Scheme'}
+                              </span>
+                              <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-bold">
+                                100% Eligible
+                              </span>
+                            </div>
+                            <h4 className="text-white font-bold text-sm leading-snug">{sch.name}</h4>
+                            <p className="text-gray-400 text-xs mt-1">Provider: {sch.provider || 'State Govt'}</p>
+                          </div>
+                          <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between">
+                            <span className="text-emerald-400 font-mono font-bold text-xs">
+                              {sch.award_amount_max ? `Up to ₹${sch.award_amount_max.toLocaleString('en-IN')}/yr` : 'Financial Aid'}
+                            </span>
+                            <a
+                              href={sch.application_url || sch.official_url || 'https://scholarships.gov.in'}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-500 px-3 py-1 rounded-lg transition-colors"
+                            >
+                              Apply
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Matched Mentor Section */}
                 {matchedMentor && (
@@ -555,7 +727,7 @@ export default function Dashboard() {
                   </h2>
                   <p className="text-gray-400 text-xs mt-1">Converts your active career advice and roadmaps into task checklists.</p>
                 </div>
-                
+
                 {/* Progress Indicator */}
                 <div className="flex items-center gap-3">
                   <div className="text-right">
@@ -594,7 +766,7 @@ export default function Dashboard() {
                           </svg>
                         )}
                       </button>
-                      
+
                       <div className="flex-1">
                         <span className={`text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-white/5 border border-white/10 text-gray-400`}>
                           {task.category}
@@ -670,7 +842,7 @@ export default function Dashboard() {
 
                           <h3 className="font-bold text-white text-base mt-3 leading-snug">{w.title}</h3>
                           <p className="text-gray-300 text-xs leading-relaxed mt-2">{w.description}</p>
-                          
+
                           {w.tags && w.tags.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-4">
                               {w.tags.map((tag, tIdx) => (
@@ -758,7 +930,7 @@ export default function Dashboard() {
                             <h4 className="font-bold text-white text-base leading-tight">{opt.path}</h4>
                           </div>
                           <p className="text-gray-400 text-xs leading-relaxed mt-2">{opt.honest_take}</p>
-                          
+
                           {/* Backup Plan */}
                           {opt.backup_plan && (
                             <div className="mt-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3 text-xs text-emerald-300">
@@ -828,7 +1000,7 @@ export default function Dashboard() {
                               Marks: {snapshot.profile.marks}% ({snapshot.profile.classLevel === 'class10' ? 'Class 10' : 'Class 12'})
                             </span>
                           </div>
-                          
+
                           <button
                             onClick={() => handleRestoreHistory(snapshot)}
                             disabled={reOnboarding}

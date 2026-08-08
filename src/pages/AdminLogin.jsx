@@ -104,7 +104,18 @@ export default function AdminLogin() {
             </button>
           </form>
 
-          <div className="mt-6 pt-4 border-t border-white/10 text-center">
+          {/* Always-visible Demo Admin Bypass button for judges */}
+          <div className="mt-5 pt-4 border-t border-rose-500/20">
+            <button
+              type="button"
+              onClick={handleBypassAdminDemo}
+              className="w-full py-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 shadow-sm hover:scale-[1.01]"
+            >
+              ⚡ 1-Click Judge Access: Log In as Demo Admin →
+            </button>
+          </div>
+
+          <div className="mt-4 text-center">
             <Link to="/auth" className="text-xs text-gray-400 hover:text-white transition-colors">
               ← Return to Student / Mentor Login
             </Link>

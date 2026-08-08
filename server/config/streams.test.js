@@ -1,6 +1,6 @@
 import { describe, test } from 'node:test'
 import assert from 'node:assert/strict'
-import { EXAM_STREAM_MAP, detectStreamExamMismatch, normalizeStream } from './streams.js'
+import { EXAM_STREAM_MAP, detectStreamExamMismatch } from './streams.js'
 
 describe('EXAM_STREAM_MAP', () => {
   test('every exam has at least one valid stream', () => {

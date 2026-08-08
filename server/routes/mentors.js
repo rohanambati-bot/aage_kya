@@ -3,10 +3,9 @@ import { supabase, supabaseAdmin, getSupabaseClient, resilientUpsertStudent, isS
 import { requireAuth, requireRole, getAuthUser } from '../middleware/auth.js'
 import { mentorApplyLimiter, mentorBookLimiter, mentorAskLimiter } from '../middleware/rateLimiter.js'
 import { verifyAndUpdateApplication } from '../utils/mentorHelpers.js'
-import { sendEmail } from '../utils/email.js'
+import { sendEmail, escapeHtml } from '../utils/email.js'
 
 const router = express.Router()
-const isDev = process.env.NODE_ENV !== 'production'
 
 // ─── Mentors Endpoints (Phase 4 — Real Mentor Connect) ──────────────────────────
 
@@ -161,7 +160,7 @@ router.post('/api/mentors/apply', validateApplyBody, mentorApplyLimiter, async (
     res.json({ success: true, id: appId })
   } catch (err) {
     console.error('Mentor application error:', err.message)
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -246,10 +245,10 @@ router.post('/api/mentors/book', requireAuth(), mentorBookLimiter, async (req, r
     sendEmail(
       contactEmail,
       'Your Mentor Session Request — Aage Kya?',
-      `<p>Hi ${contactName},</p>
-       <p>Your mentor session request with <strong>${mentorName}</strong> has been received.</p>
+      `<p>Hi ${escapeHtml(contactName)},</p>
+       <p>Your mentor session request with <strong>${escapeHtml(mentorName)}</strong> has been received.</p>
        <p>Further details will be shared with you at this email address once the mentor confirms.</p>
-       <p><strong>What you asked for:</strong> ${guidanceQuery}</p>
+       <p><strong>What you asked for:</strong> ${escapeHtml(guidanceQuery)}</p>
        <p>— Team Aage Kya?</p>`
     ).catch(() => {})
 
@@ -260,13 +259,13 @@ router.post('/api/mentors/book', requireAuth(), mentorBookLimiter, async (req, r
         'New Mentor Booking Request',
         `<p>A new mentor booking request was submitted.</p>
          <ul>
-           <li><strong>Student:</strong> ${contactName} (${contactEmail})</li>
-           <li><strong>Mentor:</strong> ${mentorName}</li>
-           <li><strong>Class Level:</strong> ${classLevel}</li>
-           <li><strong>Area of Interest:</strong> ${areaOfInterest}</li>
-           <li><strong>Preferred Language:</strong> ${preferredLanguage}</li>
-           <li><strong>Preferred Date/Time:</strong> ${preferredDateTime || 'Not specified'}</li>
-           <li><strong>Guidance Needed:</strong> ${guidanceQuery}</li>
+           <li><strong>Student:</strong> ${escapeHtml(contactName)} (${escapeHtml(contactEmail)})</li>
+           <li><strong>Mentor:</strong> ${escapeHtml(mentorName)}</li>
+           <li><strong>Class Level:</strong> ${escapeHtml(classLevel)}</li>
+           <li><strong>Area of Interest:</strong> ${escapeHtml(areaOfInterest)}</li>
+           <li><strong>Preferred Language:</strong> ${escapeHtml(preferredLanguage)}</li>
+           <li><strong>Preferred Date/Time:</strong> ${escapeHtml(preferredDateTime || 'Not specified')}</li>
+           <li><strong>Guidance Needed:</strong> ${escapeHtml(guidanceQuery)}</li>
          </ul>`
       ).catch(() => {})
     }
@@ -274,7 +273,7 @@ router.post('/api/mentors/book', requireAuth(), mentorBookLimiter, async (req, r
     res.json({ success: true, booking })
   } catch (err) {
     console.error('Mentor booking error:', err.message)
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -351,7 +350,7 @@ router.post('/api/mentors/ask', mentorAskLimiter, async (req, res) => {
       .maybeSingle()
 
     if (insertErr && (insertErr.code === 'PGRST204' || insertErr.code === '42703' || /class_level/.test(insertErr.message || ''))) {
-      const { class_level, ...noClassLevel } = payload
+      const { class_level: _class_level, ...noClassLevel } = payload
       const retry = await client.from('mentor_messages').insert(noClassLevel).select().maybeSingle()
       message = retry.data; insertErr = retry.error
     }
@@ -368,15 +367,15 @@ router.post('/api/mentors/ask', mentorAskLimiter, async (req, res) => {
       sendEmail(
         mentorEmail,
         `New Student Question: ${subject}`,
-        `<p>Hi ${mentorName},</p>
+        `<p>Hi ${escapeHtml(mentorName)},</p>
          <p>A student has sent you a question on Aage Kya?.</p>
          <ul>
-           <li><strong>From:</strong> ${contactName} (${contactEmail})</li>
-           ${classLevel ? `<li><strong>Class:</strong> ${classLevel}</li>` : ''}
-           <li><strong>Category:</strong> ${category}</li>
-           <li><strong>Subject:</strong> ${subject}</li>
+           <li><strong>From:</strong> ${escapeHtml(contactName)} (${escapeHtml(contactEmail)})</li>
+           ${classLevel ? `<li><strong>Class:</strong> ${escapeHtml(classLevel)}</li>` : ''}
+           <li><strong>Category:</strong> ${escapeHtml(category)}</li>
+           <li><strong>Subject:</strong> ${escapeHtml(subject)}</li>
          </ul>
-         <p><strong>Question:</strong> ${question}</p>
+         <p><strong>Question:</strong> ${escapeHtml(question)}</p>
          <p>Sign in to your Mentor Dashboard → Student Queries to reply.</p>
          <p>— Team Aage Kya?</p>`
       ).catch(() => {})
@@ -390,20 +389,20 @@ router.post('/api/mentors/ask', mentorAskLimiter, async (req, res) => {
         'New Ask Mentor Question',
         `<p>A student asked a mentor a question.</p>
          <ul>
-           <li><strong>Student:</strong> ${contactName} (${contactEmail})</li>
-           ${classLevel ? `<li><strong>Class:</strong> ${classLevel}</li>` : ''}
-           <li><strong>Mentor:</strong> ${mentorName}</li>
-           <li><strong>Category:</strong> ${category}</li>
-           <li><strong>Subject:</strong> ${subject}</li>
+           <li><strong>Student:</strong> ${escapeHtml(contactName)} (${escapeHtml(contactEmail)})</li>
+           ${classLevel ? `<li><strong>Class:</strong> ${escapeHtml(classLevel)}</li>` : ''}
+           <li><strong>Mentor:</strong> ${escapeHtml(mentorName)}</li>
+           <li><strong>Category:</strong> ${escapeHtml(category)}</li>
+           <li><strong>Subject:</strong> ${escapeHtml(subject)}</li>
          </ul>
-         <p><strong>Question:</strong> ${question}</p>`
+         <p><strong>Question:</strong> ${escapeHtml(question)}</p>`
       ).catch(() => {})
     }
 
     res.json({ success: true, message })
   } catch (err) {
     console.error('Mentor ask error:', err.message)
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -440,10 +439,10 @@ router.patch('/api/mentor/messages/:id/reply', requireRole('mentor'), async (req
       sendEmail(
         message.contact_email,
         `Your Mentor Replied: ${message.subject || 'Your question'}`,
-        `<p>Hi ${message.contact_name || 'there'},</p>
-         <p><strong>${mentorRow.name}</strong> has replied to your question on Aage Kya?.</p>
-         <p><strong>Your question:</strong> ${message.question}</p>
-         <p><strong>Reply:</strong> ${reply}</p>
+        `<p>Hi ${escapeHtml(message.contact_name || 'there')},</p>
+         <p><strong>${escapeHtml(mentorRow.name)}</strong> has replied to your question on Aage Kya?.</p>
+         <p><strong>Your question:</strong> ${escapeHtml(message.question)}</p>
+         <p><strong>Reply:</strong> ${escapeHtml(reply)}</p>
          <p>Sign in and open "My Mentor Requests" to see the full conversation.</p>
          <p>— Team Aage Kya?</p>`
       ).catch(() => {})
@@ -452,7 +451,7 @@ router.patch('/api/mentor/messages/:id/reply', requireRole('mentor'), async (req
     res.json({ success: true, message })
   } catch (err) {
     console.error('Mentor reply error:', err.message)
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -470,7 +469,7 @@ router.get('/api/mentor/messages', requireAuth(), async (req, res) => {
     res.json({ messages: data || [] })
   } catch (err) {
     console.error('Fetch mentor messages error:', err.message)
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -562,7 +561,7 @@ router.get('/api/mentor/workspace', requireAuth(), async (req, res) => {
     res.json({ application, mentor, messages, bookings })
   } catch (err) {
     console.error('Mentor workspace error:', err.message)
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -619,9 +618,9 @@ router.patch('/api/mentor/sessions/:id/respond', requireRole('mentor'), async (r
       sendEmail(
         booking.contact_email,
         `Your Mentor Booking Update — Aage Kya?`,
-        `<p>Hi ${booking.contact_name || 'there'},</p>
-         <p><strong>${mentorRow.name}</strong> has responded to your session request. Status: <strong>${label}</strong>.</p>
-         ${response ? `<p><strong>Message from your mentor:</strong> ${response}</p>` : ''}
+        `<p>Hi ${escapeHtml(booking.contact_name || 'there')},</p>
+         <p><strong>${escapeHtml(mentorRow.name)}</strong> has responded to your session request. Status: <strong>${label}</strong>.</p>
+         ${response ? `<p><strong>Message from your mentor:</strong> ${escapeHtml(response)}</p>` : ''}
          <p>Sign in and open "My Mentor Requests" to see the details.</p>
          <p>— Team Aage Kya?</p>`
       ).catch(() => {})
@@ -630,7 +629,7 @@ router.patch('/api/mentor/sessions/:id/respond', requireRole('mentor'), async (r
     res.json({ success: true, booking })
   } catch (err) {
     console.error('Mentor booking respond error:', err.message)
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 

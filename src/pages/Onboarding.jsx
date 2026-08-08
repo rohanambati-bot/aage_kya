@@ -590,16 +590,59 @@ function Step3({ form, setForm, errors, classLevel = 'class12' }) {
         </div>
         <Hint>
           {classLevel === 'class10' 
-            ? 'Hobbies, extra-curriculars, things you like to read or do for fun — literally anything. No wrong answers.'
-            : 'Hobbies, things you google at 2am, subjects you liked, stuff you do for fun — literally anything. There are no wrong answers here.'}
+            ? 'Tap quick topic chips below or write in your own words. No wrong answers.'
+            : 'Tap quick topic chips below or write/speak in your own words.'}
         </Hint>
+
+        {/* Quick Multiple-Choice Interest Chips for tap convenience */}
+        <div className="flex flex-wrap gap-1.5 my-2.5">
+          {[
+            '💻 Coding & Software',
+            '🎨 Design & Graphics',
+            '📈 Startups & Business',
+            '🧬 Medical & Biology',
+            '📊 Finance & CA',
+            '🎮 Gaming & Esports',
+            '⚖️ Law & Civil Services',
+            '🔬 Physics & Astronomy',
+            '✍️ Writing & Media',
+            '🤖 AI & Data Science'
+          ].map((chip) => {
+            const isSelected = form.interests.includes(chip)
+            return (
+              <button
+                key={chip}
+                type="button"
+                onClick={() => {
+                  setForm((prev) => {
+                    if (prev.interests.includes(chip)) {
+                      const updated = prev.interests.replace(chip, '').replace(/,\s*,/g, ',').replace(/^,\s*/, '').trim()
+                      return { ...prev, interests: updated }
+                    } else {
+                      const prefix = prev.interests ? prev.interests + ', ' : ''
+                      return { ...prev, interests: (prefix + chip).slice(0, MAX) }
+                    }
+                  })
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all duration-200 ${
+                  isSelected
+                    ? 'bg-saffron text-white border-saffron shadow-sm'
+                    : 'bg-navy-800 border-white/10 text-gray-300 hover:border-saffron/40 hover:text-white'
+                }`}
+              >
+                {chip}
+              </button>
+            )
+          })}
+        </div>
+
         <textarea
-          id="interests" rows={4}
+          id="interests" rows={3}
           placeholder={classLevel === 'class10' 
             ? "e.g. I love designing posters, reading history novels, and tinkering with computers in my spare time..."
             : "e.g. I love designing posters and spend hours on YouTube watching tech reviews. I also really like debating with people..."}
           value={form.interests} onChange={set('interests')}
-          className={`${errors.interests ? invalid : normal} resize-none mt-2`}
+          className={`${errors.interests ? invalid : normal} resize-none mt-1`}
         />
         <div className="flex justify-between items-start mt-1">
           <FieldError msg={errors.interests} />

@@ -348,16 +348,47 @@ export function computeMatch(studentProfile = {}, college = {}) {
   score = Math.max(0, Math.min(100, Math.round(score)))
 
   let tier = 'low'
+  let bucket = 'reach' // 'safe' (90-100) | 'target' (75-89) | 'ambitious' (60-74) | 'reach' (<60)
+
+  if (score >= 90) {
+    bucket = 'safe'
+  } else if (score >= 75) {
+    bucket = 'target'
+  } else if (score >= 60) {
+    bucket = 'ambitious'
+  } else {
+    bucket = 'reach'
+  }
+
   if (score >= MATCH_TIER_HIGH) {
     tier = 'high'
   } else if (score >= MATCH_TIER_MODERATE) {
     tier = 'moderate'
+  } else {
+    tier = 'low'
+  }
+
+  // Populate explicit "why not" trade-off explanations
+  const whyNotReasons = []
+  if (academicFit < 50) {
+    whyNotReasons.push('Admission is highly competitive based on cutoff thresholds')
+  }
+  if (budgetFit < 50) {
+    whyNotReasons.push('Annual fee structure exceeds stated budget band')
+  }
+  if (locationFit < 50) {
+    whyNotReasons.push('Located outside preferred state/district')
+  }
+  if (streamFit < 50) {
+    whyNotReasons.push('Stream alignment is indirect for this program')
   }
 
   return {
     score,
     tier,
+    bucket,
     sizeCategory,
+    whyNotReasons,
     breakdown: {
       academicFit,
       streamFit,

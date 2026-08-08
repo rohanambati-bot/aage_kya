@@ -79,7 +79,6 @@ test('scoreDomains resolves a class10 question id when classLevel=class10', () =
 })
 
 test('a class10-only question id contributes NOTHING when scored under classLevel=class12', () => {
-  const class10Ids = new Set(QUESTION_BANK.broad.class10.map((q) => q.id))
   const class12Ids = new Set(QUESTION_BANK.broad.class12.map((q) => q.id))
   const focusedIds = new Set(Object.values(QUESTION_BANK.focused).flat().map((q) => q.id))
 

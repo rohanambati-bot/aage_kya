@@ -2,7 +2,7 @@ import express from 'express'
 import { supabase, supabaseAdmin } from '../utils/db.js'
 import { requireRole } from '../middleware/auth.js'
 import { verifyAndUpdateApplication } from '../utils/mentorHelpers.js'
-import { sendEmail } from '../utils/email.js'
+import { sendEmail, escapeHtml } from '../utils/email.js'
 
 const router = express.Router()
 
@@ -17,7 +17,7 @@ router.get('/mentor-bookings', requireRole('admin'), async (req, res) => {
     if (error) throw error
     res.json({ bookings: data || [] })
   } catch (err) {
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -32,7 +32,7 @@ router.get('/mentor-messages', requireRole('admin'), async (req, res) => {
     if (error) throw error
     res.json({ messages: data || [] })
   } catch (err) {
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -47,7 +47,7 @@ router.get('/mentor-applications', requireRole('admin'), async (req, res) => {
     if (error) throw error
     res.json({ applications: data || [] })
   } catch (err) {
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -67,7 +67,7 @@ router.post('/mentor-applications/:id/reverify', requireRole('admin'), async (re
     const vResult = await verifyAndUpdateApplication(id, app.linkedin, app)
     res.json({ success: true, verification: vResult })
   } catch (err) {
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -126,7 +126,8 @@ router.post('/mentor-applications/:id/approve', requireRole('admin'), async (req
     let { error: insertErr } = await client.from('mentors').insert(mentorRow)
     if (insertErr && (insertErr.code === 'PGRST204' || insertErr.code === '42703')) {
       console.warn('[mentor approve] Extended columns missing in mentors table — inserting basic mentor row.')
-      const { is_verified, verification_badge, linkedin_name_match_score, email, ...basicRow } = mentorRow
+      // Strip the extended columns the table doesn't have yet, keeping basicRow.
+      const { is_verified: _iv, verification_badge: _vb, linkedin_name_match_score: _lms, email: _em, ...basicRow } = mentorRow
       const retry = await client.from('mentors').insert(basicRow)
       insertErr = retry.error
     }
@@ -179,7 +180,7 @@ router.post('/mentor-applications/:id/approve', requireRole('admin'), async (req
       sendEmail(
         app.email,
         'Your Mentor Application Was Approved — Aage Kya?',
-        `<p>Hi ${app.name},</p>
+        `<p>Hi ${escapeHtml(app.name)},</p>
          <p>Great news — your application to become a mentor on Aage Kya? has been <strong>approved</strong>.</p>
          <p>Your profile is now live and students can book sessions with you. Welcome aboard!</p>
          <p>— Team Aage Kya?</p>`
@@ -189,7 +190,7 @@ router.post('/mentor-applications/:id/approve', requireRole('admin'), async (req
     res.json({ success: true })
   } catch (err) {
     console.error('[mentor approve error]:', err)
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -229,10 +230,10 @@ router.post('/mentor-applications/:id/reject', requireRole('admin'), async (req,
       sendEmail(
         app.email,
         'Update on Your Mentor Application — Aage Kya?',
-        `<p>Hi ${app.name || 'there'},</p>
+        `<p>Hi ${escapeHtml(app.name || 'there')},</p>
          <p>Thank you for applying to become a mentor on Aage Kya?. After review, we're
          unable to approve your application at this time.</p>
-         ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+         ${reason ? `<p><strong>Reason:</strong> ${escapeHtml(reason)}</p>` : ''}
          <p>You're welcome to apply again in the future. Thank you for your interest in
          helping students.</p>
          <p>— Team Aage Kya?</p>`
@@ -241,7 +242,7 @@ router.post('/mentor-applications/:id/reject', requireRole('admin'), async (req,
 
     res.json({ success: true })
   } catch (err) {
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -256,7 +257,7 @@ router.get('/course-feedback', requireRole('admin'), async (req, res) => {
     if (error) throw error
     res.json({ feedback: data || [] })
   } catch (err) {
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -272,7 +273,7 @@ router.post('/course-feedback/:id/approve', requireRole('admin'), async (req, re
     if (error) throw error
     res.json({ success: true })
   } catch (err) {
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -288,7 +289,105 @@ router.delete('/course-feedback/:id', requireRole('admin'), async (req, res) => 
     if (error) throw error
     res.json({ success: true })
   } catch (err) {
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
+  }
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  DATA QUALITY DASHBOARD — GET /api/admin/data-quality
+// ═══════════════════════════════════════════════════════════════════════════
+import { getAiStatus } from '../ai/llmClient.js'
+import { isSupabaseConfigured } from '../utils/db.js'
+
+router.get('/data-quality', requireRole('admin'), async (req, res) => {
+  const client = supabaseAdmin || supabase
+  const report = {
+    timestamp: new Date().toISOString(),
+    ai: getAiStatus(),
+    institutions: { total: 0, verified: 0, unverified: 0, stale: 0, missingDetails: 0 },
+    programs: { total: 0, missingFees: 0, missingCutoffs: 0 },
+    scholarships: { totalSchemes: 0, totalCycles: 0, expiredCycles: 0, missingDeadlines: 0 },
+    sources: { total: 0, freshWithin90Days: 0, staleOlderThan180Days: 0 },
+    students: { total: 0, withGuidance: 0, activeToday: 0 },
+    healthScore: 0,
+  }
+
+  if (!isSupabaseConfigured()) {
+    return res.json({ success: true, data: { ...report, note: 'Supabase not configured — showing defaults' } })
+  }
+
+  try {
+    // ── Institutions ──────────────────────────────────────────────────────
+    const [{ data: instAll }, { data: instVerified }, { data: instStale }] = await Promise.all([
+      client.from('institutions').select('id', { count: 'exact', head: true }),
+      client.from('institutions').select('id', { count: 'exact', head: true }).eq('verification_status', 'verified'),
+      client.from('institutions').select('id', { count: 'exact', head: true }).lt('last_verified_at', new Date(Date.now() - 180 * 86400000).toISOString()),
+    ]).catch(() => [{ data: null }, { data: null }, { data: null }])
+
+    // Use counts from header if available
+    report.institutions.total = instAll?.length ?? 0
+    report.institutions.verified = instVerified?.length ?? 0
+    report.institutions.stale = instStale?.length ?? 0
+    report.institutions.unverified = report.institutions.total - report.institutions.verified
+
+    // ── Programs ──────────────────────────────────────────────────────────
+    const [{ data: progAll }, { data: progNoFees }] = await Promise.all([
+      client.from('program_offerings').select('id', { count: 'exact', head: true }),
+      client.from('program_offerings').select('id', { count: 'exact', head: true }).is('yearly_tuition_min', null),
+    ]).catch(() => [{ data: null }, { data: null }])
+
+    report.programs.total = progAll?.length ?? 0
+    report.programs.missingFees = progNoFees?.length ?? 0
+
+    // ── Scholarships ──────────────────────────────────────────────────────
+    const [{ data: schemes }, { data: cycles }, { data: expired }] = await Promise.all([
+      client.from('scholarship_schemes').select('id', { count: 'exact', head: true }),
+      client.from('scholarship_cycles').select('id', { count: 'exact', head: true }),
+      client.from('scholarship_cycles').select('id', { count: 'exact', head: true }).lt('application_deadline', new Date().toISOString()),
+    ]).catch(() => [{ data: null }, { data: null }, { data: null }])
+
+    report.scholarships.totalSchemes = schemes?.length ?? 0
+    report.scholarships.totalCycles = cycles?.length ?? 0
+    report.scholarships.expiredCycles = expired?.length ?? 0
+
+    // ── Sources ───────────────────────────────────────────────────────────
+    const [{ data: srcAll }, { data: srcFresh }] = await Promise.all([
+      client.from('source_snapshots').select('id', { count: 'exact', head: true }),
+      client.from('source_snapshots').select('id', { count: 'exact', head: true }).gte('fetched_at', new Date(Date.now() - 90 * 86400000).toISOString()),
+    ]).catch(() => [{ data: null }, { data: null }])
+
+    report.sources.total = srcAll?.length ?? 0
+    report.sources.freshWithin90Days = srcFresh?.length ?? 0
+    report.sources.staleOlderThan180Days = Math.max(0, report.sources.total - report.sources.freshWithin90Days)
+
+    // ── Students ──────────────────────────────────────────────────────────
+    const [{ data: stuAll }, { data: stuGuided }] = await Promise.all([
+      client.from('students').select('id', { count: 'exact', head: true }),
+      client.from('guidance_results').select('student_id', { count: 'exact', head: true }),
+    ]).catch(() => [{ data: null }, { data: null }])
+
+    report.students.total = stuAll?.length ?? 0
+    report.students.withGuidance = stuGuided?.length ?? 0
+
+    // ── Health score (0-100) ──────────────────────────────────────────────
+    const scores = []
+    if (report.institutions.total > 0) {
+      scores.push((report.institutions.verified / report.institutions.total) * 100)
+    }
+    if (report.programs.total > 0) {
+      scores.push(((report.programs.total - report.programs.missingFees) / report.programs.total) * 100)
+    }
+    if (report.sources.total > 0) {
+      scores.push((report.sources.freshWithin90Days / report.sources.total) * 100)
+    }
+    scores.push(report.ai.available ? 100 : 0)
+    report.healthScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0
+
+    res.json({ success: true, data: report })
+  } catch (err) {
+    console.error('[DataQuality] error:', err.message)
+    // Return partial report even on error
+    res.json({ success: true, data: { ...report, error: err.message } })
   }
 })
 

@@ -1,7 +1,10 @@
 import express from 'express'
-import { supabase, getSupabaseClient } from '../utils/db.js'
+import { supabase, getSupabaseClient, isSupabaseConfigured } from '../utils/db.js'
 import { requireAuth } from '../middleware/auth.js'
 import { computeMatch } from '../engine/localMatchEngine.js'
+import { callLLM } from '../ai/llmClient.js'
+import { QUIZ_QUESTIONS } from '../data/quizQuestions.js'
+import { escapeIlikePattern, pickCollegeMatch } from '../domain/colleges/matchCollegeName.js'
 
 const router = express.Router()
 
@@ -132,7 +135,7 @@ router.get('/api/course-feedback', async (req, res) => {
     res.json({ feedback: data || [] })
   } catch (err) {
     console.error('Course feedback fetch error:', err.message)
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -166,7 +169,7 @@ router.post('/api/course-feedback', requireAuth(), courseFeedbackLimiter, async 
     res.json({ success: true, id: data.id, message: 'Feedback submitted — it will appear after review.' })
   } catch (err) {
     console.error('Course feedback submit error:', err.message)
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: err.message })
+    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 
@@ -194,7 +197,7 @@ router.post('/api/match/local', (req, res) => {
 
     res.status(400).json({ error: 'INVALID_INPUT', message: 'Either college object or colleges array is required' })
   } catch (err) {
-    res.status(500).json({ error: 'MATCH_ENGINE_ERROR', message: err.message })
+    res.status(500).json({ error: 'MATCH_ENGINE_ERROR', message: 'An unexpected error occurred. Please try again.' })
   }
 })
 

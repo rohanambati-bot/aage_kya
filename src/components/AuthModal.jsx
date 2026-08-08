@@ -430,13 +430,22 @@ export default function AuthModal({ isOpen, onClose }) {
                     ⚡ Student (12th)
                   </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleDemoLogin('mentor')}
-                  className="w-full py-2.5 rounded-xl border border-white/10 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 text-xs font-semibold transition-all duration-200"
-                >
-                  ⚡ Mentor Demo
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleDemoLogin('mentor')}
+                    className="py-2.5 rounded-xl border border-white/10 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 text-xs font-semibold transition-all duration-200"
+                  >
+                    ⚡ Mentor Demo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDemoLogin('admin')}
+                    className="py-2.5 rounded-xl border border-white/10 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-xs font-semibold transition-all duration-200"
+                  >
+                    🛡️ Admin Demo
+                  </button>
+                </div>
               </div>
             </>
           )}
