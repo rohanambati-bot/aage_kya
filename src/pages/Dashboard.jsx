@@ -122,7 +122,9 @@ export default function Dashboard() {
   if (!user || !profile) return null
 
   const initials = profile?.full_name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? '?'
-  const joinDate = new Date(user.created_at).toLocaleDateString('en-IN', { year: 'numeric', month: 'long' })
+  const joinDate = user.created_at
+    ? new Date(user.created_at).toLocaleDateString('en-IN', { year: 'numeric', month: 'long' })
+    : null
 
   // Re-run Onboarding Trigger
   const handleReOnboard = async () => {
@@ -392,7 +394,7 @@ export default function Dashboard() {
                   </span>
                 </div>
                 <p className="text-gray-400 text-sm">{user.email}</p>
-                <p className="text-gray-600 text-xs mt-1">Guided since {joinDate}</p>
+                {joinDate && <p className="text-gray-600 text-xs mt-1">Guided since {joinDate}</p>}
 
                 {/* Quick Profile Parameters */}
                 <div className="flex flex-wrap justify-center sm:justify-start gap-2.5 mt-4">
@@ -436,67 +438,46 @@ export default function Dashboard() {
         </div>
 
         {/* ── Guidance Preference Choice Hero Banner ── */}
-        <div className="glass-card p-6 sm:p-8 mb-8 rounded-3xl border border-blue-500/40 relative overflow-hidden bg-gradient-to-br from-blue-600/15 via-indigo-900/30 to-rose-900/15 shadow-2xl">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
-            <div className="flex-1 text-center lg:text-left">
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3.5 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 mb-3 shadow-md">
-                ⚡ Choose Your Comfortable Guidance Format
+        {/* Only show this CTA when the user hasn't generated any guidance yet */}
+        {!guidance && (
+        <div className="glass-card p-5 sm:p-6 mb-8 rounded-2xl border border-blue-500/30 relative overflow-hidden bg-gradient-to-br from-blue-600/10 via-indigo-900/20 to-rose-900/10">
+          <div className="flex flex-col sm:flex-row items-center gap-5">
+            <div className="flex-1">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 mb-2">
+                ⚡ Get Started
               </span>
-              <h2 className="font-display text-xl sm:text-2xl font-black text-white leading-tight">
+              <h2 className="font-display text-lg sm:text-xl font-bold text-white leading-tight">
                 How do you prefer to discover your career options?
               </h2>
-              <p className="text-gray-300 text-xs sm:text-sm mt-1.5 leading-relaxed max-w-xl">
-                We adapt to your comfort level! Choose between quick multiple-choice option picking or writing/speaking about your interests in your own words.
+              <p className="text-gray-400 text-xs mt-1 leading-relaxed max-w-lg">
+                Choose between quick multiple-choice or writing about your interests in your own words.
               </p>
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-3.5 w-full lg:w-auto shrink-0 font-sans">
+            <div className="flex gap-3 w-full sm:w-auto shrink-0">
               {/* Choice 1: Multiple Choice Quiz */}
               <Link
                 to="/explore"
-                className="p-5 rounded-2xl bg-gradient-to-br from-blue-600/20 to-indigo-600/10 hover:from-blue-600/30 hover:to-indigo-600/20 border border-blue-400/40 transition-all duration-300 group text-left flex flex-col justify-between hover:scale-[1.03] shadow-lg hover:shadow-blue-500/25"
+                className="flex-1 sm:flex-none p-4 rounded-xl bg-gradient-to-br from-blue-600/20 to-indigo-600/10 hover:from-blue-600/30 hover:to-indigo-600/20 border border-blue-400/30 transition-all duration-200 group text-center hover:scale-[1.02]"
               >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-2xl">🎯</span>
-                    <span className="text-[10px] uppercase font-black text-blue-300 bg-blue-500/20 border border-blue-400/30 px-2 py-0.5 rounded-md">
-                      Multiple Choice
-                    </span>
-                  </div>
-                  <h3 className="font-bold text-white text-sm">Explore Paths Quiz</h3>
-                  <p className="text-gray-400 text-xs mt-1 leading-relaxed">
-                    Fast &amp; tap-based! Answer quick structured questions about marks, streams &amp; budget.
-                  </p>
-                </div>
-                <div className="mt-4 text-xs font-bold text-blue-300 group-hover:underline flex items-center gap-1">
-                  <span>Explore Paths →</span>
-                </div>
+                <span className="text-xl block mb-1">🎯</span>
+                <h3 className="font-bold text-white text-xs">Explore Paths Quiz</h3>
+                <p className="text-gray-400 text-[10px] mt-0.5">Quick & tap-based</p>
               </Link>
 
               {/* Choice 2: Deep Narrative / Write-In */}
               <Link
                 to={profile?.role === 'other' ? '/onboarding' : profile?.class_level === 'class10' ? '/class10/onboarding' : '/class12/onboarding'}
-                className="p-5 rounded-2xl bg-gradient-to-br from-rose-600/20 to-pink-600/10 hover:from-rose-600/30 hover:to-pink-600/20 border border-rose-400/40 transition-all duration-300 group text-left flex flex-col justify-between hover:scale-[1.03] shadow-lg hover:shadow-rose-500/25"
+                className="flex-1 sm:flex-none p-4 rounded-xl bg-gradient-to-br from-rose-600/20 to-pink-600/10 hover:from-rose-600/30 hover:to-pink-600/20 border border-rose-400/30 transition-all duration-200 group text-center hover:scale-[1.02]"
               >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-2xl">✍️</span>
-                    <span className="text-[10px] uppercase font-black text-rose-300 bg-rose-500/20 border border-rose-400/30 px-2 py-0.5 rounded-md">
-                      Write-In / Voice
-                    </span>
-                  </div>
-                  <h3 className="font-bold text-white text-sm">Express In Own Words</h3>
-                  <p className="text-gray-400 text-xs mt-1 leading-relaxed">
-                    Deep &amp; personal! Write or record a brief description of your passions &amp; background.
-                  </p>
-                </div>
-                <div className="mt-4 text-xs font-bold text-rose-300 group-hover:underline flex items-center gap-1">
-                  <span>Get Started →</span>
-                </div>
+                <span className="text-xl block mb-1">✍️</span>
+                <h3 className="font-bold text-white text-xs">Express In Own Words</h3>
+                <p className="text-gray-400 text-[10px] mt-0.5">Deep & personal</p>
               </Link>
             </div>
           </div>
         </div>
+        )}
 
         {/* ── Role-Based Quick Access Tiles ── */}
         {(() => {
