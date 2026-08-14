@@ -1,55 +1,58 @@
-# Blueprint for Backend and Frontend on Render.
+# Render blueprint — single web service serving BOTH the API and the frontend.
+#
+# server/index.js serves ../dist as static files when it exists, and falls
+# through to /api/* routes. So one root-level build produces both halves:
+#   npm install   -> root package.json contains express + all server deps
+#   npm run build -> vite build emits ./dist
+#   npm start     -> node server/index.js (serves dist + /api)
+#
+# Because frontend and API share one origin, VITE_API_URL stays blank and
+# no CORS configuration is required.
 services:
-  # ─── Backend Web Service ─────────────────────────────────────────
   - type: web
-    name: aage-kya-api
+    name: aage-kya
     runtime: node
-    rootDir: server
     plan: free
-    autoDeploy: false
-    buildCommand: npm ci --omit=dev
+    buildCommand: npm install && npm run build
     startCommand: npm start
-    healthCheckPath: /api/health/ready
+    healthCheckPath: /api/health
     envVars:
-      - key: NODE_ENV
-        value: production
-      - key: ALLOWED_ORIGINS
+      # ─── Build-time (inlined into the JS bundle by Vite) ──────────────
+      - key: VITE_SUPABASE_URL
         sync: false
-      - key: PUBLIC_APP_URL
+      - key: VITE_SUPABASE_ANON_KEY
         sync: false
+
+      # ─── Runtime: Supabase ───────────────────────────────────────────
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_ANON_KEY
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+
+      # ─── Runtime: AI providers ───────────────────────────────────────
       - key: GROQ_API_KEY
         sync: false
       - key: GROQ_MODEL
         value: llama-3.3-70b-versatile
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.0-flash
       - key: AI_TIMEOUT_MS
         value: "30000"
       - key: AI_MAX_RETRIES
         value: "1"
+
+      # ─── Optional: transactional email ───────────────────────────────
+      # Without these, sendEmail() logs a warning and no-ops.
       - key: RESEND_API_KEY
         sync: false
       - key: RESEND_FROM_EMAIL
         sync: false
 
-  # ─── Frontend Static Site ─────────────────────────────────────────
-  - type: web
-    name: aage-kya-frontend
-    runtime: static
-    buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    envVars:
-      - key: VITE_API_URL
-        sync: false
-      - key: VITE_SUPABASE_URL
-        sync: false
-      - key: VITE_SUPABASE_ANON_KEY
-        sync: false
+# Deliberately NOT set here:
+#   PORT          Render injects it; index.js reads process.env.PORT.
+#   VITE_API_URL  Blank means same-origin relative /api/* calls.
+#   NODE_ENV      Leave unset until Resend + PUBLIC_APP_URL are configured.
