@@ -53,7 +53,47 @@ import rateLimit from 'express-rate-limit'
 import xss from 'xss'
 
 // 1. HTTP Security Headers
-app.use(helmet())
+//
+// helmet()'s default CSP sets `default-src 'self'` and defines no
+// `connect-src`, so browser fetches fall back to same-origin only. That
+// silently blocks the frontend's direct calls to Supabase (auth, REST,
+// realtime) with a bare "Failed to fetch" — the request never leaves the
+// browser, so it is invisible in server logs and in any server-to-server
+// test. Only bundlers/dev servers hide this locally: Vite serves the SPA
+// without Helmet, so the CSP only ever appears in production.
+//
+// Allow exactly the cross-origin destinations the app needs.
+const supabaseOrigin = (() => {
+  try {
+    return process.env.SUPABASE_URL ? new URL(process.env.SUPABASE_URL).origin : null
+  } catch {
+    return null
+  }
+})()
+
+const connectSrc = ["'self'"]
+if (supabaseOrigin) {
+  connectSrc.push(supabaseOrigin)
+  // Supabase realtime uses a WebSocket on the same host.
+  connectSrc.push(supabaseOrigin.replace(/^https:/, 'wss:'))
+}
+
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      'connect-src': connectSrc,
+      // Vite emits a small inline module preload script in index.html.
+      'script-src': ["'self'", "'unsafe-inline'"],
+      'img-src': ["'self'", 'data:', 'blob:', 'https:'],
+      'font-src': ["'self'", 'data:', 'https:'],
+    },
+  },
+  // The SPA and API are same-origin, but COEP/CORP defaults can still break
+  // loading fonts and images from CDNs.
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}))
 
 // 2. Global Rate Limiting (200 requests per 15 minutes)
 const globalLimiter = rateLimit({
