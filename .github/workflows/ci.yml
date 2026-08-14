@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install server dependencies
+        run: npm --prefix server ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test
+
+      # Gate on HIGH and above: any high or critical advisory fails CI. Root and
+      # server/ are both clean at that level (the vite/esbuild high was cleared by
+      # vite 6.4.3, and the react-router high was cleared by holding
+      # react-router-dom at 6.30.4).
+      #
+      # Two MODERATE react-router advisories remain and are knowingly not blocked:
+      # an open redirect via a backslash-prefixed path in Link/useNavigate, and
+      # constructor injection in `deserializeErrors`, which is unreachable in this
+      # client-only SPA (no React Router server/RSC data layer). No patched 6.x
+      # release exists; the fix requires a two-major migration to react-router 8,
+      # which is tracked separately rather than forced by the audit gate.
+      - name: Audit frontend dependencies
+        run: npm audit --audit-level=high
+
+      - name: Audit server dependencies
+        run: npm --prefix server audit --audit-level=high
